@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "ggstore-poetry"
+version = "0.1.0"
+description = ""
+authors = ["Egor Lavysh <egorlavys95@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiogram = "^3.22.0"
+pydantic = "^2.11.9"
+pydantic-settings = "^2.11.0"
+sqlalchemy = "^2.0.43"
+alembic = "^1.16.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
