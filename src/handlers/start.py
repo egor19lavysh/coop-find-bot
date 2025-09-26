@@ -31,8 +31,8 @@ async def check_user_subscription(callback: CallbackQuery):
         await callback.message.answer(text=TEXT_SUB_FAIL)
         await callback.answer()
 
-@router.message(Command("test"))
-async def cmd_test(message: Message):
-    await message.answer("test")
+# @router.message(Command("test"))
+# async def cmd_test(message: Message):
+#     await message.answer("test")
 
 
