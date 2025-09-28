@@ -9,7 +9,7 @@ class Profile(Base):
     user_id: Mapped[int]
     nickname: Mapped[str]
     telegram_tag: Mapped[str] = mapped_column(nullable=True)
-    gender: Mapped[str]
+    gender: Mapped[str] = mapped_column(nullable=True)
     game: Mapped[str]
     rank: Mapped[str] = mapped_column(nullable=True)
     about: Mapped[str]
