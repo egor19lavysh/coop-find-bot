@@ -19,7 +19,7 @@ AsyncSessionFactory = async_sessionmaker(
 
 async def get_db_session() -> AsyncSession:
     async with AsyncSessionFactory() as session:
-        yield session
+        return session
 
 
 class Base(DeclarativeBase):
