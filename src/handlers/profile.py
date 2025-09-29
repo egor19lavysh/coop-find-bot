@@ -20,6 +20,8 @@ class ProfileForm(StatesGroup):
     about = State()
     goal = State()
     photo = State()
+    check_profile = State()
+    is_active = State()
 
 ### ТЕКСТЫ
 TEXT_NICK = "Введи свой никнейм (он будет отображаться в анкете)."
@@ -35,9 +37,24 @@ TEXT_ALLOW_INVITATIONS = "Разрешить присылать приглаше
 TEXT_SKIP = '\n\n<i>Если не хочешь заполнять эту информацию, напиши в чат "Пропустить"</i>'
 TEXT_ANSWER_TYPE_ERROR = "Ответьте текстом!"
 TEXT_WRONG_ANSWER = "Выберите ответ из предложенного списка!"
+TEXT_PHOTO_ERROR = 'Пришлите либо фотографию профиля, либо напишите "Пропустите"'
+TEXT_REPEAT_PROFILE = "Заполни заново свою анкету"
+
+PROFILE_SAMPLE = """
+<b>Ник</b>: {nickname}
+<b>Тег</b>: {telegram_tag}
+<b>Пол</b>: {gender}
+<b>Игра</b>: {game}
+<b>Ранг</b>: {rank}
+<b>О себе</b>: {about}
+<b>Цель поиска</b>: {goal}
+"""
+PHOTO_SAMPLE = "\n<b>Аватарка</b>: Нет"
+IS_PROFILE_OK = "Все верно?"
 
 @router.message(Command("profile"))
 async def start_profile(message: Message, state: FSMContext):
+    # Доабавить проверку на существование анкеты
     await state.update_data(user_id=message.from_user.id)
     await message.answer(text=TEXT_NICK)
     await state.set_state(ProfileForm.nickname)
@@ -79,11 +96,166 @@ async def save_gender(message: Message, state: FSMContext):
             else:
                 await message.answer(text=TEXT_WRONG_ANSWER)
                 await state.set_state(ProfileForm.gender)
+                return
         
-        await message.answer(text=TEXT_GAME, reply_markup=ReplyKeyboardRemove())
+        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb())
         await state.set_state(ProfileForm.game)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ProfileForm.gender)
     
+@router.message(ProfileForm.game)
+async def save_game(message: Message, state: FSMContext):
+    if message.text:
+        if message.text in GAME_LIST:
+            await state.update_data(game=message.text)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER)
+            await state.set_state(ProfileForm.game)
+            return
         
+        await message.answer(text=TEXT_RANK, reply_markup=await get_skip_keyboard())
+        await state.set_state(ProfileForm.rank)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.game)
+
+
+@router.message(ProfileForm.rank)
+async def save_rank(message: Message, state: FSMContext):
+    if message.text:
+        if message.text == "Пропустить":
+            await state.update_data(rank=None)
+        else:
+            await state.update_data(rank=message.text)
+        
+        await message.answer(text=TEXT_ABOUT, reply_markup=ReplyKeyboardRemove())
+        await state.set_state(ProfileForm.about)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.rank)
+
+@router.message(ProfileForm.about)
+async def save_about(message: Message, state: FSMContext):
+    if message.text:
+        await state.update_data(about=message.text)
+        await message.answer(text=TEXT_GOAL)
+        await state.set_state(ProfileForm.goal)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.about)
+
+@router.message(ProfileForm.goal)
+async def save_goal(message: Message, state: FSMContext):
+    if message.text:
+        await state.update_data(goal=message.text)
+        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard())
+        await state.set_state(ProfileForm.photo)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.goal)
+
+@router.message(ProfileForm.photo)
+async def save_photo(message: Message, state: FSMContext):
+    if message.photo:
+        await state.update_data(photo=message.photo[-1].file_id)
+    elif message.text == "Пропустить":
+        await state.update_data(photo=None)
+    else:
+        await message.answer(text=TEXT_PHOTO_ERROR)
+        await state.set_state(ProfileForm.photo)
+        return
+    await check_profile(message=message, state=state)
+
+async def check_profile(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    nickname = data["nickname"]
+    telegram_tag = data["telegram_tag"] if data["telegram_tag"] else "Нет"
+    gender = data["gender"] if data["gender"] else "Нет"
+    game = data["game"]
+    rank = data["rank"] if data["rank"] else "Нет"
+    about = data["about"]
+    goal = data["goal"]
+    photo = data["photo"]
+
+    if photo:
+        try:
+            await message.answer_photo(
+                photo=photo,
+                caption=PROFILE_SAMPLE.format(
+                    nickname=nickname,
+                    telegram_tag=telegram_tag,
+                    gender=gender,
+                    game=game,
+                    rank=rank,
+                    about=about,
+                    goal=goal
+                )
+            )
+        except:
+            await message.answer(
+                text=PROFILE_SAMPLE.format(
+                    nickname=nickname,
+                    telegram_tag=telegram_tag,
+                    gender=gender,
+                    game=game,
+                    rank=rank,
+                    about=about,
+                    goal=goal
+                ) + PHOTO_SAMPLE
+            )
+    else:
+        await message.answer(
+                text=PROFILE_SAMPLE.format(
+                    nickname=nickname,
+                    telegram_tag=telegram_tag,
+                    gender=gender,
+                    game=game,
+                    rank=rank,
+                    about=about,
+                    goal=goal
+                ) + PHOTO_SAMPLE
+            )
+        
+    await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb())
+    await state.set_state(ProfileForm.check_profile)
+
+@router.message(ProfileForm.check_profile)
+async def commit_profile(message: Message, state: FSMContext):
+    if message.text:
+        if message.text == "Верно ✅":
+            await message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
+            await state.set_state(ProfileForm.is_active)
+            await message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=await get_status_kb())
+        elif message.text == "Неверно ❌":
+            await message.answer(text=TEXT_REPEAT_PROFILE)
+            await state.clear()
+            await start_profile(message, state)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER)
+            await state.set_state(ProfileForm.check_profile)
+        
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.check_profile)
+
+
+@router.message(ProfileForm.is_active)
+async def save_status(message: Message, state: FSMContext):
+    if message.text:
+        if message.text == "Подтвердить ✅":
+            await state.update_data(is_active=True)
+        elif message.text == "Отклонить ❌":
+            await state.update_data(is_active=False)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER)
+            await state.set_state(ProfileForm.is_active)
+        
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.is_active)
+
+
+async def save_profile(message: Message, state: FSMContext):
+    pass
