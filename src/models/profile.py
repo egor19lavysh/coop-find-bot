@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from src.database import Base
+from database import Base
 from sqlalchemy import ARRAY, Integer, Date
 from datetime import date
 

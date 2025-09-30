@@ -5,10 +5,17 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
 from utils.constants import *
+from repositories.profile_repository import ProfileRepository
+from database import get_db_session
+import asyncio
 
 
 
 router = Router()
+
+
+repository = ProfileRepository(db_session=asyncio.run(get_db_session()))
+
 
 ### ФОРМА ДЛЯ АНКЕТЫ
 class ProfileForm(StatesGroup):
@@ -114,7 +121,8 @@ async def save_game(message: Message, state: FSMContext):
             await state.set_state(ProfileForm.game)
             return
         
-        await message.answer(text=TEXT_RANK, reply_markup=await get_skip_keyboard())
+        data = await state.get_data()
+        await message.answer(text=TEXT_RANK.format(game=data["game"]), reply_markup=await get_skip_keyboard())
         await state.set_state(ProfileForm.rank)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -251,6 +259,8 @@ async def save_status(message: Message, state: FSMContext):
         else:
             await message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ProfileForm.is_active)
+            return
+        await save_profile(message=message, state=state)
         
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -258,4 +268,29 @@ async def save_status(message: Message, state: FSMContext):
 
 
 async def save_profile(message: Message, state: FSMContext):
-    pass
+    print("Дошел")
+
+    data = await state.get_data()
+    user_id = data["user_id"]
+    nickname = data["nickname"]
+    game = data["game"]
+    about = data["about"]
+    goal = data["goal"]
+    is_active = data["is_active"]
+    telegram_tag = data["telegram_tag"]
+    gender = data["gender"]
+    rank = data["rank"]
+    photo = data["photo"]
+
+    await repository.create_profile(
+        user_id = data["user_id"],
+        nickname = data["nickname"],
+        game = data["game"],
+        about = data["about"],
+        goal = data["goal"],
+        is_active = data["is_active"],
+        telegram_tag = data["telegram_tag"],
+        gender = data["gender"],
+        rank = data["rank"],
+        photo = data["photo"]
+    )
