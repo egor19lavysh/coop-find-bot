@@ -1,0 +1,21 @@
+from aiogram import Router, Bot, F
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.filters.command import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from keyboards.menu_kb import *
+from utils.constants import *
+from database import get_db_session
+
+
+
+router = Router()
+
+
+### ТЕКСТЫ
+TEXT_INTRO = "А кто это у нас тут такой красивый и без тиммейта? Надо это исправить"
+
+
+@router.message(Command("menu"))
+async def cmd_menu(message: Message):
+    await message.answer(text=TEXT_INTRO, reply_markup=(await get_menu_keyboard()).as_markup())

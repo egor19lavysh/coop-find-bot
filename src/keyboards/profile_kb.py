@@ -1,4 +1,5 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from utils.constants import GAME_LIST
 
 
@@ -33,18 +34,16 @@ async def get_game_kb() -> ReplyKeyboardMarkup:
     )
     return keyboard
 
-async def get_status_kb() -> ReplyKeyboardMarkup:
-    buttons = [
-        [KeyboardButton(text="Подтвердить ✅")],
-        [KeyboardButton(text="Отклонить ❌")]
-    ]
-
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True
+async def get_status_kb() -> InlineKeyboardBuilder:
+    builder = InlineKeyboardBuilder()
+    builder.add(
+        InlineKeyboardButton(text="Подтвердить ✅", callback_data="is_active_true")
     )
-
-    return keyboard
+    builder.add(
+        InlineKeyboardButton(text="Отклонить ❌", callback_data="is_active_false")
+    )
+    builder.adjust(1)
+    return builder
 
 async def get_commit_profile_kb() -> ReplyKeyboardMarkup:
     buttons = [
@@ -58,3 +57,23 @@ async def get_commit_profile_kb() -> ReplyKeyboardMarkup:
     )
 
     return keyboard
+
+
+async def get_update_profile_kb() -> InlineKeyboardBuilder:
+    buttons = [
+        InlineKeyboardButton(text="Просмотреть анкету 👤", callback_data="read_profile"),
+        InlineKeyboardButton(text="Заполнить анкету заново 📝", callback_data="recreate_profile"),
+        InlineKeyboardButton(text="Удалить анкету❌", callback_data="delete_profile"),
+        InlineKeyboardButton(text="Изменить фото 🖼️", callback_data="update_photo"),
+        InlineKeyboardButton(text="Снять анкету ⏸️", callback_data="deactivate_profile"),
+        InlineKeyboardButton(text="Разместить анкету 📢", callback_data="activate_profile")
+    ]
+
+    builder = InlineKeyboardBuilder()
+
+    for button in buttons:
+        builder.add(button)
+
+    builder.adjust(1)
+
+    return builder
