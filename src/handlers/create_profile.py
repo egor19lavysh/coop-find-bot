@@ -6,6 +6,7 @@ from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
+from handlers.menu import cmd_menu
 
 
 router = Router()
@@ -36,7 +37,7 @@ TEXT_PHOTO = "Отправь фото профиля."
 TEXT_SUCCESS = "Отлично! Твоя анкета успешно создана и теперь доступна другим игрокам. 👾"
 TEXT_ALLOW_INVITATIONS = "Разрешить присылать приглашения от других пользователей?"
 TEXT_SKIP = '\n\n<i>Если не хочешь заполнять эту информацию, напиши в чат "Пропустить"</i>'
-TEXT_ANSWER_TYPE_ERROR = "Ответьте текстом!"
+TEXT_ANSWER_TYPE_ERROR = "Ответь текстом."
 TEXT_WRONG_ANSWER = "Выберите ответ из предложенного списка!"
 TEXT_PHOTO_ERROR = 'Пришлите либо фотографию профиля, либо напишите "Пропустите"'
 TEXT_REPEAT_PROFILE = "Заполни заново свою анкету"
@@ -288,4 +289,5 @@ async def save_profile(message: Message, state: FSMContext):
     )
 
     await state.clear()
+    await cmd_menu(message)
 

@@ -25,9 +25,23 @@ TEXT_PROFILE_DEACTIVATED = "Твоя анкета снята с поиска. Т
 TEXT_PROFILE_ACTIVATED = "Твоя анкета успешно размещена. Теперь ее видят другие пользователи."
 
 
-@router.callback_query(F.data == "read_profile")
+@router.callback_query(F.data == "update_profile")
+async def update_profile(callback: CallbackQuery):
+    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_update_profile_kb(user_id=callback.from_user.id)).as_markup())
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("read_profile"))
 async def read_profile(callback: CallbackQuery):
-    if profile := await repository.get_profile(user_id=callback.from_user.id):
+
+    callback_parts = callback.data.split("_")
+    user_id = int(callback_parts[-1])
+    type_user = callback_parts[-2]
+
+    if profile := await repository.get_profile(user_id=user_id):
+
+        keyboard = await get_interaction_kb(user_id=user_id) if type_user == "other" else None
+
         profile_text = FULL_PROFILE_SAMPLE.format(
             nickname=profile.nickname,
             telegram_tag=profile.telegram_tag if profile.telegram_tag else "Нет",
@@ -41,17 +55,20 @@ async def read_profile(callback: CallbackQuery):
             about=profile.about,
             goal=profile.goal,
         )
+
         if profile.photo:
             try:
                 await callback.message.answer_photo(
                     photo=profile.photo,
-                    caption=profile_text)
+                    caption=profile_text,
+                    reply_markup=keyboard)
                 await callback.answer()
                 return
             except:
                 pass
         await callback.message.answer(
-                    text=profile_text + PHOTO_SAMPLE
+                    text=profile_text + PHOTO_SAMPLE,
+                    reply_markup=keyboard
                 )
 
     else:
@@ -59,11 +76,6 @@ async def read_profile(callback: CallbackQuery):
     
     await callback.answer()
 
-
-@router.callback_query(F.data == "update_profile")
-async def update_profile(callback: CallbackQuery):
-    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_update_profile_kb()).as_markup())
-    await callback.answer()
 
 @router.callback_query(F.data == "recreate_profile")
 async def recreate_profile(callback: CallbackQuery, state: FSMContext):
