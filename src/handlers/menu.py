@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from keyboards.menu_kb import *
 from utils.constants import *
-from database import get_db_session
+
 
 
 

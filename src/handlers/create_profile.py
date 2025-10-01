@@ -46,13 +46,24 @@ TEXT_ALREADY_HAVE_PROFILE = "Вы уже имеете анкету.\nВы мож
 IS_PROFILE_OK = "Все верно?"
 
 @router.message(Command("profile"))
-async def start_profile(message: Message, state: FSMContext):
-    if not await repository.get_profile(user_id=message.from_user.id):
-        await state.update_data(user_id=message.from_user.id)
-        await message.answer(text=TEXT_NICK)
+async def start_profile_with_message(message: Message, state: FSMContext):
+    await state.update_data(
+        user_id=message.from_user.id,
+        chat_id=message.chat.id
+    )
+
+    await start_profile(bot=message.bot, state=state)
+
+async def start_profile(bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    user_id = data["user_id"]
+    chat_id = data["chat_id"]
+
+    if not await repository.get_profile(user_id=user_id):
+        await bot.send_message(chat_id=chat_id, text=TEXT_NICK)
         await state.set_state(ProfileForm.nickname)
     else:
-        await message.answer(text=TEXT_ALREADY_HAVE_PROFILE)
+        await bot.send_message(chat_id=chat_id, text=TEXT_ALREADY_HAVE_PROFILE)
 
 @router.message(ProfileForm.nickname)
 async def save_nickname(message: Message, state: FSMContext):

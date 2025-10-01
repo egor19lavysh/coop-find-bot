@@ -68,7 +68,11 @@ async def update_profile(callback: CallbackQuery):
 @router.callback_query(F.data == "recreate_profile")
 async def recreate_profile(callback: CallbackQuery, state: FSMContext):
     await repository.delete_profile(user_id=callback.from_user.id)
-    await start_profile(callback.message, state)
+    await state.update_data(
+        user_id=callback.from_user.id,
+        chat_id=callback.message.chat.id
+    )
+    await start_profile(callback.bot, state)
     await callback.answer()
 
 @router.callback_query(F.data == "delete_profile")
