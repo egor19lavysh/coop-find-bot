@@ -84,6 +84,51 @@ class ProfileRepository:
                 )
                 await session.commit()
 
+    async def add_teammate_id(self, user_id: int, teammate_id: int) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+                profile.teammate_ids.append(teammate_id)
+                await session.commit()
+
+    async def update_polite(self, user_id: int, score: int) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+                count = len(profile.teammate_ids)
+                new_polite = (profile.polite * (count - 1) + score) / count
+
+                await session.execute(
+                    update(Profile)
+                    .where(Profile.user_id == user_id)
+                    .values(polite=new_polite)
+                )
+                await session.commit()
+
+    async def update_skill(self, user_id: int, score: int) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+                count = len(profile.teammate_ids)
+                new_skill = (profile.skill * (count - 1) + score) / count
+
+                await session.execute(
+                    update(Profile)
+                    .where(Profile.user_id == user_id)
+                    .values(skill=new_skill)
+                )
+                await session.commit()
+
+    async def update_team_game(self, user_id: int, score: int) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+                count = len(profile.teammate_ids)
+                new_team_game = (profile.team_game * (count - 1) + score) / count
+
+                await session.execute(
+                    update(Profile)
+                    .where(Profile.user_id == user_id)
+                    .values(team_game=new_team_game)
+                )
+                await session.commit()
+
 
     async def delete_profile(self, user_id: int) -> None:
         async with self.session_factory() as session:

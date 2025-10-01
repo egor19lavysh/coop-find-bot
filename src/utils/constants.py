@@ -42,3 +42,9 @@ FULL_PROFILE_SAMPLE = """
 <b>О себе:</b> {about}
 <b>Цель:</b> {goal}
 """
+
+CONNECT_LIST = [
+    "В процессе⌛",
+    "Да, получилось✅",
+    "Нет ❌"
+]

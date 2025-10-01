@@ -53,7 +53,7 @@ async def get_profiles_by_game(message: Message, state: FSMContext, game: str):
     profiles = await repository.get_profiles_by_game(game=game, user_id=message.from_user.id)
     
     if profiles:
-        # Сохраняем профили в состояние для пагинации
+        # Сохраняем анкеты в состояние для пагинации
         await state.clear() 
         await state.update_data(profiles=profiles, current_page=0, game=game)
         
