@@ -23,6 +23,7 @@ TEXT_PHOTO_UPDATED = "Фото профиля обновлено."
 TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля!'
 TEXT_PROFILE_DEACTIVATED = "Твоя анкета снята с поиска. Ты сможешь ее разместить в любой момент."
 TEXT_PROFILE_ACTIVATED = "Твоя анкета успешно размещена. Теперь ее видят другие пользователи."
+TEXT_YOUR_CHOICE = "Ты уверен? Знай, это твой выбор\n"
 
 
 @router.callback_query(F.data == "update_profile")
@@ -40,16 +41,17 @@ async def read_profile(callback: CallbackQuery):
 
     if profile := await repository.get_profile(user_id=user_id):
 
-        keyboard = await get_interaction_kb(user_id=user_id) if type_user == "other" else None
+        keyboard = await get_interaction_kb(user_id=user_id, game=profile.game) if type_user == "other" else None
+        prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
-        profile_text = FULL_PROFILE_SAMPLE.format(
+        profile_text = prefix + FULL_PROFILE_SAMPLE.format(
             nickname=profile.nickname,
             telegram_tag=profile.telegram_tag if profile.telegram_tag else "Нет",
             gender=profile.gender if profile.gender else "Нет",
             level=profile.experience // 100 + 1,
-            polite=round(profile.polite, 1) if profile.teammate_ids else "Нет оценок",
-            skill=round(profile.skill, 1) if profile.teammate_ids else "Нет оценок",
-            team_game=round(profile.team_game, 1) if profile.teammate_ids else "Нет оценок", 
+            polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
+            skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
+            team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
             game=profile.game,
             rank=profile.rank if profile.rank else "Нет",
             about=profile.about,

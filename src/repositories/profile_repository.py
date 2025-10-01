@@ -47,10 +47,10 @@ class ProfileRepository:
             )
             return result.scalar_one_or_none()
 
-    async def get_profiles_by_game(self, game: str) -> list[Profile]:
+    async def get_profiles_by_game(self, game: str, user_id: int) -> list[Profile]:
         async with self.session_factory() as session:
             result = await session.execute(
-                select(Profile).where(Profile.game == game and Profile.is_active)
+                select(Profile).where(Profile.game == game, Profile.is_active, Profile.user_id != user_id)
             )
             return result.scalars().all()
 

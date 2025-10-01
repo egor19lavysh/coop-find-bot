@@ -78,7 +78,7 @@ async def get_update_profile_kb(user_id: int) -> InlineKeyboardBuilder:
 
     return builder
 
-async def get_interaction_kb(user_id: int) -> InlineKeyboardMarkup:
+async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
             text="Написать сообщение",
@@ -86,11 +86,11 @@ async def get_interaction_kb(user_id: int) -> InlineKeyboardMarkup:
         )],
         [InlineKeyboardButton(
             text="Пригласить в игру",
-            callback_data=f"invite_user_{user_id}"
+            callback_data=f"invite_user_{game}_{user_id}"
         )],
         [InlineKeyboardButton(
             text="Назад",
-            callback_data=f"back_ti_profiles"
+            callback_data="back_to_profiles"
         )]
     ]
 

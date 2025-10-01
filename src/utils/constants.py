@@ -34,9 +34,9 @@ FULL_PROFILE_SAMPLE = """
 <b>Тег:</b> {telegram_tag}
 <b>Пол:</b> {gender}
 <b>Уровень:</b> {level}⚡
-<b>Вежливость:</b> {polite}⭐
-<b>Скилл:</b> {skill}⭐
-<b>Командная игра:</b> {team_game}⭐
+<b>Вежливость:</b> {polite}
+<b>Скилл:</b> {skill}
+<b>Командная игра:</b> {team_game}
 <b>Игры:</b> {game}
 <b>Ранг:</b> {rank}
 <b>О себе:</b> {about}
