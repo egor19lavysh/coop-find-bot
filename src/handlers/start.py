@@ -3,6 +3,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters.command import Command
 from keyboards.start_kb import get_start_keyboard
 from utils.check_subscription import check_subscription
+from handlers.create_profile import start_profile
+from aiogram.fsm.context import FSMContext
 from config import settings
 
 
@@ -22,11 +24,16 @@ async def cmd_start(message: Message):
     await message.answer(text=TEXT_START, reply_markup=builder.as_markup())
 
 @router.callback_query(F.data.startswith("check_sub"))
-async def check_user_subscription(callback: CallbackQuery):
+async def check_user_subscription(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split("_")[-1])
     if await check_subscription(bot=callback.bot, user_id=user_id):
         await callback.message.edit_text(text=callback.message.text)
         await callback.message.answer(text=TEXT_SUB_SUCCESS)
+        await state.update_data(
+            user_id=user_id,
+            chat_id=callback.message.chat.id
+        )
+        await start_profile(bot=callback.bot, state=state)
     else:
         await callback.message.answer(text=TEXT_SUB_FAIL)
         await callback.answer()

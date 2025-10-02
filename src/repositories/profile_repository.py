@@ -86,10 +86,33 @@ class ProfileRepository:
 
     async def add_teammate_id(self, user_id: int, teammate_id: int) -> None:
         async with self.session_factory() as session:
-            if profile := await self.get_profile(user_id=user_id):
-                profile.teammate_ids.append(teammate_id)
-                await session.commit()
+            result = await session.execute(
+                select(Profile.teammate_ids).where(Profile.user_id == user_id)
+            )
+            current_ids = result.scalar_one_or_none()
 
+            if current_ids is None:
+                new_ids = [teammate_id]
+                await session.execute(
+                    update(Profile)
+                    .where(Profile.user_id == user_id)
+                    .values(teammate_ids=new_ids)
+                )
+                await session.commit()
+                
+            else:
+                current_ids_int = [int(id) for id in current_ids] if current_ids else []
+                
+                if teammate_id not in current_ids_int:
+                    new_ids = current_ids + [teammate_id]
+                    await session.execute(
+                        update(Profile)
+                        .where(Profile.user_id == user_id)
+                        .values(teammate_ids=new_ids)
+                    )
+                    await session.commit()
+
+                
     async def update_polite(self, user_id: int, score: int) -> None:
         async with self.session_factory() as session:
             if profile := await self.get_profile(user_id=user_id):

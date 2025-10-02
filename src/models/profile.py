@@ -20,9 +20,9 @@ class Profile(Base):
     is_active: Mapped[bool] = mapped_column(default=False)
     
     teammate_ids = mapped_column(ARRAY(Integer), default=[])
-    polite: Mapped[float] = mapped_column(default=0.0)
-    skill: Mapped[float] = mapped_column(default=0.0)
-    team_game: Mapped[float] = mapped_column(default=0.0)
+    polite: Mapped[float] = mapped_column(nullable=True)
+    skill: Mapped[float] = mapped_column(nullable=True)
+    team_game: Mapped[float] = mapped_column(nullable=True)
 
     experience: Mapped[int] = mapped_column(default=0)
     send_first_message: Mapped[bool] = mapped_column(default=False)

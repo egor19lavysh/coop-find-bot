@@ -16,8 +16,10 @@ async def get_profiles_kb(profiles: list[Profile], page: int = 0, per_page: int 
     current_profiles = profiles[start_idx:end_idx]
     
     for profile in current_profiles:
-        rating = round((profile.polite + profile.team_game + profile.skill) / 3, 1)
-        rating_text = f" {rating}⭐" if rating != 0.0 else ""
+        sa = (profile.polite + profile.team_game + profile.skill) / 3
+        print(sa)
+        rating = round(sa, 1)
+        rating_text = f" {rating}⭐" if rating is not None else ""
         
         builder.add(
             InlineKeyboardButton(

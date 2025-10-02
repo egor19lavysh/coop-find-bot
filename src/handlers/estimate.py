@@ -68,23 +68,26 @@ async def handle_connect_answer(message: Message, state: FSMContext):
         await state.clear()
 
 @router.callback_query(F.data == "estimate_callback")
-async def handle_success_after_process(message: Message, state: FSMContext):
+async def handle_success_after_process(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     teammate = data.get('teammate', 'тиммейт')
     
-    await message.answer(
+    await callback.message.answer(
         TEXT_SUCCESS,
         reply_markup=ReplyKeyboardRemove()
     )
-    await message.answer(
+
+    await callback.message.answer(
         TEXT_POLITENESS.format(teammate=teammate),
         reply_markup=await get_scale_kb("politeness")
     )
+
+    await callback.answer()
     await state.set_state(EstimateStates.politeness)
 
 @router.callback_query(F.data.startswith("estimate_politeness_"))
 async def handle_politeness_rating(callback: CallbackQuery, state: FSMContext):
-    rating = callback.data.split("_")[-1]
+    rating = int(callback.data.split("_")[-1])  # Конвертируем в int
     data = await state.get_data()
     teammate = data.get('teammate', 'тиммейт')
     
@@ -99,10 +102,10 @@ async def handle_politeness_rating(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("estimate_skill_"))
 async def handle_skill_rating(callback: CallbackQuery, state: FSMContext):
-    rating = callback.data.split("_")[-1]
+    rating = int(callback.data.split("_")[-1])  # Конвертируем в int
     data = await state.get_data()
     teammate = data.get('teammate', 'тиммейт')
-    politeness_rating = data.get('politeness_rating', '0')
+    politeness_rating = data.get('politeness_rating', 0)
     
     await state.update_data(skill_rating=rating)
     
@@ -115,20 +118,20 @@ async def handle_skill_rating(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("estimate_teamwork_"))
 async def handle_teamwork_rating(callback: CallbackQuery, state: FSMContext):
-    rating = callback.data.split("_")[-1]
+    rating = int(callback.data.split("_")[-1])  # Конвертируем в int
     data = await state.get_data()
-    politeness_rating = data.get('politeness_rating', '0')
-    skill_rating = data.get('skill_rating', '0')
+    politeness_rating = data.get('politeness_rating', 0)
+    skill_rating = data.get('skill_rating', 0)
     teammate_id = data["teammate_id"]
     
     await callback.message.edit_text(
-        f"Вежливость: {politeness_rating}⭐\nСкилл: {rating}⭐\nКомандная игра: {rating}"
+        f"Вежливость: {politeness_rating}⭐\nСкилл: {skill_rating}⭐\nКомандная игра: {rating}⭐"  # Исправлена опечатка
     )
     
-    await repository.add_teammate_id(user_id=callback.from_user.id, teammate_id=teammate_id)
-    await repository.update_polite(user_id=callback.from_user.id, score=politeness_rating)
-    await repository.update_skill(user_id=callback.from_user.id, score=skill_rating)
-    await repository.update_team_game(user_id=callback.from_user.id, score=rating)
+    await repository.add_teammate_id(user_id=teammate_id, teammate_id=callback.from_user.id)
+    await repository.update_polite(user_id=teammate_id, score=politeness_rating)
+    await repository.update_skill(user_id=teammate_id, score=skill_rating)
+    await repository.update_team_game(user_id=teammate_id, score=rating)
     
     await state.clear()
     await callback.answer()
