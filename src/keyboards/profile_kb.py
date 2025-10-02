@@ -8,7 +8,7 @@ async def get_skip_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="Пропустить")]
         ],
-        resize_keyboard=True  # рекомендуется добавлять для лучшего отображения
+        resize_keyboard=True
     )
 
 async def get_gender_keyboard() -> ReplyKeyboardMarkup:
@@ -23,16 +23,18 @@ async def get_gender_keyboard() -> ReplyKeyboardMarkup:
     )
     return keyboard
 
-async def get_game_kb() -> ReplyKeyboardMarkup:
-    buttons = []
+async def get_game_inline_kb() -> InlineKeyboardMarkup:
+    """Inline клавиатура для выбора игр"""
+    builder = InlineKeyboardBuilder()
+    
     for game in GAME_LIST:
-        buttons.append([KeyboardButton(text=game)])
-
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True
-    )
-    return keyboard
+        builder.add(InlineKeyboardButton(
+            text=game,
+            callback_data=f"get_profiles_by_{game}"
+        ))
+    
+    builder.adjust(2)  # по 2 кнопки в ряд
+    return builder.as_markup()
 
 async def get_status_kb() -> InlineKeyboardBuilder:
     builder = InlineKeyboardBuilder()
@@ -98,4 +100,15 @@ async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
         inline_keyboard=buttons
     )
 
+    return keyboard
+
+async def get_game_kb() -> ReplyKeyboardMarkup:
+    buttons = []
+    for game in GAME_LIST:
+        buttons.append([KeyboardButton(text=game)])
+
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=buttons,
+        resize_keyboard=True
+    )
     return keyboard

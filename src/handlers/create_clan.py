@@ -21,6 +21,7 @@ class ClanForm(StatesGroup):
     check = State()
 
 ### ТЕКСТЫ
+TEXT_INTRO = "Чтобы разместить анкету клана ответь пожалуйста на пару вопросов ниже:"
 TEXT_NAME = "Введи название клана."
 TEXT_GAME = "Выбери игру, в которую ищешь тиммейтов:"
 TEXT_DESCRIPTION = "Введи описание клана."
@@ -49,6 +50,7 @@ async def start_clan(bot: Bot, state: FSMContext):
     user_id = data["user_id"]
 
     if not await repository.get_clan(user_id=user_id):
+        await bot.send_message(chat_id=user_id, text=TEXT_INTRO)
         await bot.send_message(chat_id=user_id, text=TEXT_NAME)
         await state.set_state(ClanForm.name)
     else:
