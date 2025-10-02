@@ -24,7 +24,7 @@ class Profile(Base):
     skill: Mapped[float] = mapped_column(nullable=True)
     team_game: Mapped[float] = mapped_column(nullable=True)
 
-    experience: Mapped[int] = mapped_column(default=0)
+    experience: Mapped[int] = mapped_column(default=50)
     send_first_message: Mapped[bool] = mapped_column(default=False)
     five_consecutive_days: Mapped[bool] = mapped_column(default=False)
     last_activity_day: Mapped[date]

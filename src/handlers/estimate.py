@@ -7,6 +7,7 @@ from keyboards.estimate_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from handlers.menu import cmd_menu
+from utils.level_up import level_up
 
 
 router = Router()
@@ -133,6 +134,12 @@ async def handle_teamwork_rating(callback: CallbackQuery, state: FSMContext):
     await repository.update_skill(user_id=teammate_id, score=skill_rating)
     await repository.update_team_game(user_id=teammate_id, score=rating)
     
+    if profile := await repository.get_profile(user_id=callback.from_user.id):
+        new_xp = profile.experience + 10
+        if profile.experience // 100 < new_xp // 100:
+            await level_up(callback.bot, user_id=profile.user_id, new_level=new_xp // 100 + 1)
+        await repository.add_experience(user_id=profile.user_id, experience=10)
+
     await state.clear()
     await callback.answer()
 

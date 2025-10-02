@@ -152,6 +152,29 @@ class ProfileRepository:
                 )
                 await session.commit()
 
+    async def add_experience(self, user_id: int, experience: int) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+                await session.execute(update(Profile).where(Profile.user_id == user_id).values(experience=profile.experience + experience))
+                await session.commit()
+
+    async def update_last_activity_day(self, user_id: int, day: date) -> None:
+        async with self.session_factory() as session:
+            if await self.get_profile(user_id=user_id):
+                await session.execute(update(Profile).where(Profile.user_id == user_id).values(last_activity_day=day))
+                await session.commit()
+    
+    async def update_days_series(self, user_id: int, days: int = 1) -> None:
+        async with self.session_factory() as session:
+            if await self.get_profile(user_id=user_id):
+                await session.execute(update(Profile).where(Profile.user_id == user_id).values(days_series=days))
+                await session.commit()
+
+    async def update_send_first_message(self, user_id: int, value: bool = True) -> None:
+        async with self.session_factory() as session:
+            if await self.get_profile(user_id=user_id):
+                await session.execute(update(Profile).where(Profile.user_id == user_id).values(send_first_message=value))
+                await session.commit()
 
     async def delete_profile(self, user_id: int) -> None:
         async with self.session_factory() as session:

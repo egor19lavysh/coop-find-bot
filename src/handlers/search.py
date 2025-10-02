@@ -11,6 +11,7 @@ from repositories.clan_repository import clan_repository
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from handlers.estimate import ask_connect
 from datetime import datetime, timedelta
+from utils.level_up import level_up
 
 router = Router()
 
@@ -179,6 +180,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
             await message.answer(text="Произошла ошибка. Попробуйте заново.")
             await state.clear()
             return
+        
 
         postfix = ""
         if message.from_user.username:
@@ -190,6 +192,16 @@ async def send_message_to_user(message: Message, state: FSMContext):
                 text=TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix
             )
             await message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(game=game))
+
+            if profile := await repository.get_profile(user_id=message.from_user.id):
+                if not profile.send_first_message:
+                    new_xp = profile.experience + 20
+                    if profile.experience // 100 < new_xp // 100:
+                        await level_up(message.bot, profile.user_id, new_xp // 100 + 1)
+                    await repository.add_experience(user_id=profile.user_id, experience=20)
+                    await repository.update_send_first_message(user_id=profile.user_id)
+                
+
         except:
             await message.answer(text=TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(game=game))
         
@@ -311,6 +323,12 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
             text=join_message
         )
         await callback.message.answer(TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(game=clan.game, search_type="clans"))
+
+        new_xp = user_profile.experience + 30
+        if user_profile.experience // 100 < new_xp // 100:
+            await level_up(callback.bot, user_id=user_profile.user_id, new_level=new_xp // 100 + 1)
+        await repository.add_experience(user_id=user_profile.user_id, experience=30)
+        
     except Exception as e:
         await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(game=clan.game, search_type="clans"))
 
