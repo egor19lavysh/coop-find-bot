@@ -29,6 +29,13 @@ PROFILE_SAMPLE = """
 """
 PHOTO_SAMPLE = "<b>Аватарка</b>: Нет"
 
+CLAN_SAMPLE = """
+<b>Название:</b> {name}
+<b>Игра:</b> {game}
+<b>Описание клана:</b> {description}
+<b>Требования:</b> {demands}
+"""
+
 FULL_PROFILE_SAMPLE = """
 <b>Ник:</b> {nickname}
 <b>Тег:</b> {telegram_tag}

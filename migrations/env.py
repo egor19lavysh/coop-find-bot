@@ -24,6 +24,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 from src.models.profile import Profile
+from src.models.clan import Clan
 
 target_metadata = Base.metadata
 

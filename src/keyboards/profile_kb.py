@@ -61,7 +61,7 @@ async def get_commit_profile_kb() -> ReplyKeyboardMarkup:
 
 async def get_update_profile_kb(user_id: int) -> InlineKeyboardBuilder:
     buttons = [
-        InlineKeyboardButton(text="Просмотреть анкету 👤", callback_data=f"read_profile_self_{user_id}"),
+        InlineKeyboardButton(text="Показать профиль", callback_data=f"read_profile_self_{user_id}"),
         InlineKeyboardButton(text="Заполнить анкету заново 📝", callback_data="recreate_profile"),
         InlineKeyboardButton(text="Удалить анкету❌", callback_data="delete_profile"),
         InlineKeyboardButton(text="Изменить фото 🖼️", callback_data="update_photo"),
