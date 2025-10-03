@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from models.profile import Profile
+from models.profile import Profile, Game
 from database import async_sessionmaker, AsyncSessionFactory
 from datetime import date
 from sqlalchemy import select, update, insert
@@ -13,7 +13,7 @@ class ProfileRepository:
     async def create_profile(self,
                        user_id: int,
                        nickname: str,
-                       game: str,
+                       games: dict[str, str],
                        about: str,
                        goal: str,
                        is_active: bool,
@@ -28,16 +28,21 @@ class ProfileRepository:
                         nickname=nickname,
                         telegram_tag=telegram_tag,
                         gender=gender,
-                        game=game,
-                        rank=rank,
                         about=about,
                         goal=goal,
                         photo=photo,
                         is_active=is_active,
                         last_activity_day=date.today()
-                    )
+                    ).returning(Profile.id)
+        
         async with self.session_factory() as session:
-            await session.execute(query)
+            profile_id = (await session.execute(query)).scalar_one_or_none()
+            for game, rank in games.items():
+                await session.execute(insert(Game).values(
+                    name=game,
+                    rank=rank,
+                    profile_id=profile_id
+                ))
             await session.commit()
 
     async def get_profile(self, user_id: int) -> Profile | None:
@@ -117,7 +122,10 @@ class ProfileRepository:
         async with self.session_factory() as session:
             if profile := await self.get_profile(user_id=user_id):
                 count = len(profile.teammate_ids)
-                new_polite = (profile.polite * (count - 1) + score) / count
+                if count > 1:
+                    new_polite = (profile.polite * (count - 1) + score) / count
+                else:
+                    new_polite = score
 
                 await session.execute(
                     update(Profile)
@@ -130,7 +138,10 @@ class ProfileRepository:
         async with self.session_factory() as session:
             if profile := await self.get_profile(user_id=user_id):
                 count = len(profile.teammate_ids)
-                new_skill = (profile.skill * (count - 1) + score) / count
+                if count > 1:
+                    new_skill = (profile.skill * (count - 1) + score) / count
+                else:
+                    new_skill = score
 
                 await session.execute(
                     update(Profile)
@@ -143,7 +154,10 @@ class ProfileRepository:
         async with self.session_factory() as session:
             if profile := await self.get_profile(user_id=user_id):
                 count = len(profile.teammate_ids)
-                new_team_game = (profile.team_game * (count - 1) + score) / count
+                if count > 1:
+                    new_team_game = (profile.team_game * (count - 1) + score) / count
+                else:
+                    new_team_game = score
 
                 await session.execute(
                     update(Profile)

@@ -123,7 +123,11 @@ async def handle_teamwork_rating(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     politeness_rating = data.get('politeness_rating', 0)
     skill_rating = data.get('skill_rating', 0)
-    teammate_id = data["teammate_id"]
+
+    if "teammate_id" in data:
+        teammate_id = data["teammate_id"]
+    else:
+        await callback.message.answer("Я потерял id твоего тиммейта. Попробуй заново пригласить твоего тиммейта в игру и потом оцени его")
     
     await callback.message.edit_text(
         f"Вежливость: {politeness_rating}⭐\nСкилл: {skill_rating}⭐\nКомандная игра: {rating}⭐"  # Исправлена опечатка

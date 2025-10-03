@@ -102,13 +102,38 @@ async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
 
     return keyboard
 
-async def get_game_kb() -> ReplyKeyboardMarkup:
-    buttons = []
+async def get_game_kb(n: int = 2) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
     for game in GAME_LIST:
-        buttons.append([KeyboardButton(text=game)])
+        builder.add(
+            InlineKeyboardButton(text=game,
+                                 callback_data=f"save_profile_game_{game}")
+        )
 
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True
-    )
+    builder.adjust(n)
+    keyboard = builder.as_markup()
     return keyboard
+
+async def get_photo_kb() -> ReplyKeyboardMarkup:
+    buttons = [
+        [KeyboardButton(text="Фото с профиля")],
+        [KeyboardButton(text="Пропустить")]
+    ]
+
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+async def get_confirmation_kb() -> ReplyKeyboardMarkup:
+    buttons = [
+        [KeyboardButton(text="Да")],
+        [KeyboardButton(text="Нет")]
+    ]
+
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+async def get_tag_kb() -> ReplyKeyboardMarkup:
+    buttons = [
+        [KeyboardButton(text="Отправить данные")],
+        [KeyboardButton(text="Пропустить")]
+    ]
+
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)

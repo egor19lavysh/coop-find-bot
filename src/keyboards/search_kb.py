@@ -14,8 +14,11 @@ async def get_profiles_kb(profiles: list[Profile], page: int = 0, per_page: int 
     current_profiles = profiles[start_idx:end_idx]
     
     for profile in current_profiles:
-        sa = (profile.polite + profile.team_game + profile.skill) / 3
-        rating = round(sa, 1)
+        if profile.polite is not None and profile.team_game is not None and profile.skill is not None:
+            sa = (profile.polite + profile.team_game + profile.skill) / 3
+            rating = round(sa, 1)
+        else:
+            rating = None
         rating_text = f" {rating}⭐" if rating is not None else ""
         
         builder.add(

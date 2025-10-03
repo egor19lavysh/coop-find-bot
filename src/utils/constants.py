@@ -22,8 +22,7 @@ PROFILE_SAMPLE = """
 <b>Ник</b>: {nickname}
 <b>Тег</b>: {telegram_tag}
 <b>Пол</b>: {gender}
-<b>Игра</b>: {game}
-<b>Ранг</b>: {rank}
+<b>Игры</b>: {game}
 <b>О себе</b>: {about}
 <b>Цель поиска</b>: {goal}
 """

@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
-from sqlalchemy import ARRAY, Integer, Date
+from sqlalchemy import ARRAY, Integer, Date, ForeignKey
 from datetime import date
 
 class Profile(Base):
@@ -11,8 +11,7 @@ class Profile(Base):
     nickname: Mapped[str]
     telegram_tag: Mapped[str] = mapped_column(nullable=True)
     gender: Mapped[str] = mapped_column(nullable=True)
-    game: Mapped[str]
-    rank: Mapped[str] = mapped_column(nullable=True)
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="profile")
     about: Mapped[str]
     goal: Mapped[str]
     photo: Mapped[str] = mapped_column(nullable=True)
@@ -24,12 +23,19 @@ class Profile(Base):
     skill: Mapped[float] = mapped_column(nullable=True)
     team_game: Mapped[float] = mapped_column(nullable=True)
 
-    experience: Mapped[int] = mapped_column(default=50)
+    experience: Mapped[int] = mapped_column(default=0)
     send_first_message: Mapped[bool] = mapped_column(default=False)
-    five_consecutive_days: Mapped[bool] = mapped_column(default=False)
     last_activity_day: Mapped[date]
     days_series: Mapped[int] = mapped_column(default=1)
 
 
 
+class Game(Base):
+    __tablename__ = "ggstore_games"
 
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    rank: Mapped[str] = mapped_column(nullable=True)
+
+    profile_id: Mapped[int] = mapped_column(ForeignKey("ggstore_profiles.id"))
+    profile: Mapped["Profile"] = relationship("Profile", back_populates="games")

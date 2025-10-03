@@ -332,6 +332,8 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(game=clan.game, search_type="clans"))
 
+    await callback.answer()
+
 @router.callback_query(F.data.startswith("back_to_clans"))
 async def back_to_clans(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()

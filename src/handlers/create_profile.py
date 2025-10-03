@@ -19,6 +19,7 @@ class ProfileForm(StatesGroup):
     gender = State()
     game = State()
     rank = State()
+    add_new_game = State()
     about = State()
     goal = State()
     photo = State()
@@ -39,12 +40,13 @@ TEXT_ALLOW_INVITATIONS = "Разрешить присылать приглаше
 TEXT_SKIP = '\n\n<i>Если не хочешь заполнять эту информацию, напиши в чат "Пропустить"</i>'
 TEXT_ANSWER_TYPE_ERROR = "Ответь текстом."
 TEXT_WRONG_ANSWER = "Выберите ответ из предложенного списка!"
-TEXT_PHOTO_ERROR = 'Пришлите либо фотографию профиля, либо напишите "Пропустите"'
+TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля или выберите доступный вариант ответа ("Фото с профиля" или "Пропустить")'
 TEXT_REPEAT_PROFILE = "Заполни заново свою анкету"
 TEXT_ACCEPTED = "\n\nПодтвеждено ✅"
 TEXT_REJECTED = "\n\nОтклонено ❌"
 TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы можешь ее удалить или изменить в меню /menu"
 IS_PROFILE_OK = "Все верно?"
+TEXT_ADD_GAME = "Добавить еще игру?"
 
 @router.message(Command("profile"))
 async def start_profile_with_message(message: Message, state: FSMContext):
@@ -62,6 +64,10 @@ async def start_profile(bot: Bot, state: FSMContext):
 
     if not await repository.get_profile(user_id=user_id):
         await bot.send_message(chat_id=chat_id, text=TEXT_NICK)
+        await state.update_data(
+            games={},
+            game=None
+        )
         await state.set_state(ProfileForm.nickname)
     else:
         await bot.send_message(chat_id=chat_id, text=TEXT_ALREADY_HAVE_PROFILE)
@@ -70,7 +76,7 @@ async def start_profile(bot: Bot, state: FSMContext):
 async def save_nickname(message: Message, state: FSMContext):
     if message.text:
         await state.update_data(nickname=message.text)
-        await message.answer(text=TEXT_TAG, reply_markup=await get_skip_keyboard())
+        await message.answer(text=TEXT_TAG, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -78,10 +84,11 @@ async def save_nickname(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.telegram_tag)
 async def save_telegram_tag(message: Message, state: FSMContext):
-    
     if message.text:
         if message.text == "Пропустить":
             await state.update_data(telegram_tag=None)
+        elif message.text == "Отправить данные":
+            await state.update_data(telegram_tag=message.from_user.username)
         else:
             await state.update_data(telegram_tag=message.text)
         
@@ -93,7 +100,6 @@ async def save_telegram_tag(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.gender)
 async def save_gender(message: Message, state: FSMContext):
-    
     if message.text:
         if message.text == "Пропустить":
             await state.update_data(gender=None)
@@ -111,37 +117,79 @@ async def save_gender(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ProfileForm.gender)
     
-@router.message(ProfileForm.game)
-async def save_game(message: Message, state: FSMContext):
-    if message.text:
-        if message.text in GAME_LIST:
-            await state.update_data(game=message.text)
+@router.callback_query(ProfileForm.game)
+async def save_game(callback: CallbackQuery, state: FSMContext):
+    game = callback.data.split("_")[-1]
+
+    data = await state.get_data()
+    games = data["games"]
+
+    await callback.answer()
+
+    if game:
+        if game in GAME_LIST:
+            if game not in games:
+                await state.update_data(game=game)
+            else:
+                await callback.message.answer(text="Ты уже выбрал эту игру!")
+                await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb())
+                await state.set_state(ProfileForm.add_new_game)
+                return
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER)
+            await callback.message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ProfileForm.game)
             return
         
-        data = await state.get_data()
-        await message.answer(text=TEXT_RANK.format(game=data["game"]), reply_markup=await get_skip_keyboard())
+        await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_skip_keyboard())
         await state.set_state(ProfileForm.rank)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ProfileForm.game)
+    
+    
 
 
 @router.message(ProfileForm.rank)
 async def save_rank(message: Message, state: FSMContext):
     if message.text:
+        data = await state.get_data()
+        games = data["games"]
+        game = data["game"]
+
         if message.text == "Пропустить":
-            await state.update_data(rank=None)
+            rank = None
         else:
-            await state.update_data(rank=message.text)
+            rank = message.text
+
+        games[game] = rank
+
+        await state.update_data(
+            games=games,
+            game=None
+        )
         
-        await message.answer(text=TEXT_ABOUT, reply_markup=ReplyKeyboardRemove())
-        await state.set_state(ProfileForm.about)
+        await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb())
+        await state.set_state(ProfileForm.add_new_game)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ProfileForm.rank)
+
+
+@router.message(ProfileForm.add_new_game)
+async def add_new_game(message: Message, state: FSMContext):
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb())
+            await state.set_state(ProfileForm.game)
+        elif message.text == "Нет":
+            await message.answer(text=TEXT_ABOUT, reply_markup=ReplyKeyboardRemove())
+            await state.set_state(ProfileForm.about)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER)
+            await state.set_state(ProfileForm.add_new_game)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await state.set_state(ProfileForm.add_new_game)
 
 @router.message(ProfileForm.about)
 async def save_about(message: Message, state: FSMContext):
@@ -157,7 +205,7 @@ async def save_about(message: Message, state: FSMContext):
 async def save_goal(message: Message, state: FSMContext):
     if message.text:
         await state.update_data(goal=message.text)
-        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard())
+        await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb())
         await state.set_state(ProfileForm.photo)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -165,14 +213,32 @@ async def save_goal(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.photo)
 async def save_photo(message: Message, state: FSMContext):
-    if message.photo:
+    if message.text:
+        if message.text == "Фото с профиля":
+            photos = await message.bot.get_user_profile_photos(message.from_user.id)
+    
+            if photos.total_count > 0:
+                photo = photos.photos[0][-1]
+                file_id = photo.file_id
+            else:
+                file_id = None
+
+            await state.update_data(photo=file_id)
+
+        elif message.text == "Пропустить":
+            await state.update_data(photo=None)
+        else:
+            await message.answer(TEXT_PHOTO_ERROR)
+            await state.set_state(ProfileForm.photo)
+            return
+
+    elif message.photo:
         await state.update_data(photo=message.photo[-1].file_id)
-    elif message.text == "Пропустить":
-        await state.update_data(photo=None)
     else:
-        await message.answer(text=TEXT_PHOTO_ERROR)
+        await message.answer(TEXT_PHOTO_ERROR)
         await state.set_state(ProfileForm.photo)
         return
+
     await check_profile(message=message, state=state)
 
 async def check_profile(message: Message, state: FSMContext):
@@ -181,49 +247,35 @@ async def check_profile(message: Message, state: FSMContext):
     nickname = data["nickname"]
     telegram_tag = data["telegram_tag"] if data["telegram_tag"] else "Нет"
     gender = data["gender"] if data["gender"] else "Нет"
-    game = data["game"]
-    rank = data["rank"] if data["rank"] else "Нет"
+    games = data["games"]
     about = data["about"]
     goal = data["goal"]
     photo = data["photo"]
+
+    games_str = ", ".join(game for game in games)
+
+    profile = PROFILE_SAMPLE.format(
+                    nickname=nickname,
+                    telegram_tag=telegram_tag,
+                    gender=gender,
+                    game=games_str,
+                    about=about,
+                    goal=goal
+                )
 
     if photo:
         try:
             await message.answer_photo(
                 photo=photo,
-                caption=PROFILE_SAMPLE.format(
-                    nickname=nickname,
-                    telegram_tag=telegram_tag,
-                    gender=gender,
-                    game=game,
-                    rank=rank,
-                    about=about,
-                    goal=goal
-                )
+                caption=profile
             )
         except:
             await message.answer(
-                text=PROFILE_SAMPLE.format(
-                    nickname=nickname,
-                    telegram_tag=telegram_tag,
-                    gender=gender,
-                    game=game,
-                    rank=rank,
-                    about=about,
-                    goal=goal
-                ) + PHOTO_SAMPLE
+                text=profile + PHOTO_SAMPLE
             )
     else:
         await message.answer(
-                text=PROFILE_SAMPLE.format(
-                    nickname=nickname,
-                    telegram_tag=telegram_tag,
-                    gender=gender,
-                    game=game,
-                    rank=rank,
-                    about=about,
-                    goal=goal
-                ) + PHOTO_SAMPLE
+                text=profile + PHOTO_SAMPLE
             )
         
     await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb())
@@ -237,9 +289,9 @@ async def commit_profile(message: Message, state: FSMContext):
             await state.set_state(ProfileForm.is_active)
             await message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=(await get_status_kb()).as_markup())
         elif message.text == "Неверно ❌":
-            await message.answer(text=TEXT_REPEAT_PROFILE)
-            await state.clear()
-            await start_profile_with_message(message, state)
+            await message.answer(text="В разработке... пока что все правильно", reply_markup=ReplyKeyboardRemove())
+            await state.set_state(ProfileForm.is_active)
+            await message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=(await get_status_kb()).as_markup())
         else:
             await message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ProfileForm.check_profile)
@@ -278,13 +330,12 @@ async def save_profile(message: Message, state: FSMContext):
     await repository.create_profile(
         user_id = data["user_id"],
         nickname = data["nickname"],
-        game = data["game"],
+        games = data["games"],
         about = data["about"],
         goal = data["goal"],
         is_active = data["is_active"],
         telegram_tag = data["telegram_tag"],
         gender = data["gender"],
-        rank = data["rank"],
         photo = data["photo"]
     )
 
