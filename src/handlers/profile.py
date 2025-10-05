@@ -52,8 +52,7 @@ async def read_profile(callback: CallbackQuery):
             polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
             skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
             team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
-            game=profile.game,
-            rank=profile.rank if profile.rank else "Нет",
+            games=", ".join(game.name for game in profile.games),
             about=profile.about,
             goal=profile.goal,
         )

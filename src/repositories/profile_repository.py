@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from models.profile import Profile, Game
 from database import async_sessionmaker, AsyncSessionFactory
 from datetime import date
-from sqlalchemy import select, update, insert
+from sqlalchemy import select, update, insert, delete
+from sqlalchemy.orm import selectinload
 
 
 @dataclass
@@ -37,9 +38,9 @@ class ProfileRepository:
         
         async with self.session_factory() as session:
             profile_id = (await session.execute(query)).scalar_one_or_none()
-            for game, rank in games.items():
+            for name, rank in games.items():
                 await session.execute(insert(Game).values(
-                    name=game,
+                    name=name,
                     rank=rank,
                     profile_id=profile_id
                 ))
@@ -48,7 +49,7 @@ class ProfileRepository:
     async def get_profile(self, user_id: int) -> Profile | None:
         async with self.session_factory() as session:
             result = await session.execute(
-                select(Profile).where(Profile.user_id == user_id)
+                select(Profile).where(Profile.user_id == user_id).options(selectinload(Profile.games))
             )
             return result.scalar_one_or_none()
 
@@ -190,10 +191,77 @@ class ProfileRepository:
                 await session.execute(update(Profile).where(Profile.user_id == user_id).values(send_first_message=value))
                 await session.commit()
 
+    async def update_nickname(self, user_id: int, nickname: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(nickname=nickname)
+            )
+            await session.commit()
+
+    async def update_telegram_tag(self, user_id: int, telegram_tag: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(telegram_tag=telegram_tag)
+            )
+            await session.commit()
+
+    async def update_gender(self, user_id: int, gender: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(gender=gender)
+            )
+            await session.commit()
+
+    async def update_about(self, user_id: int, about: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(about=about)
+            )
+            await session.commit()
+
+    async def update_goal(self, user_id: int, goal: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(goal=goal)
+            )
+            await session.commit()
+
+    async def update_games(self, user_id: int, games: dict[str, str | None]) -> None:
+        async with self.session_factory() as session:
+            if profile := await self.get_profile(user_id=user_id):
+
+                await self.delete_games(profile_id=profile.id)
+
+                for name, rank in games.items():
+                    await session.execute(insert(Game).values(
+                        name=name,
+                        rank=rank,
+                        profile_id=profile.id
+                    ))
+
+                await session.commit()
+
+    async def delete_games(self, profile_id: int) -> None:
+        async with self.session_factory() as session:
+            await session.execute(delete(Game).where(Game.profile_id == profile_id))
+            await session.commit()
+            
+
     async def delete_profile(self, user_id: int) -> None:
         async with self.session_factory() as session:
             profile = await self.get_profile(user_id=user_id)
             if profile:
+                await session.execute(delete(Game).where(Game.profile_id==profile.id))
                 await session.delete(profile)
                 await session.commit()
 
