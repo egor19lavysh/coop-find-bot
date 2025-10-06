@@ -28,6 +28,10 @@ class Profile(Base):
     last_activity_day: Mapped[date]
     days_series: Mapped[int] = mapped_column(default=1)
 
+    @property
+    def games_str(self) -> str:
+        return ", ".join([game.name for game in self.games])
+
 
 
 class Game(Base):

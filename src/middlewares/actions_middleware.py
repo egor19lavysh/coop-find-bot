@@ -23,18 +23,31 @@ class ActivityTrackingMiddleware(BaseMiddleware):
         
 
         if profile:= await repository.get_profile(user.id):
+            
             today = date.today()
             last_activity_day = profile.last_activity_day
             diff = (today - last_activity_day).days
+
             if diff > 1:
                 await repository.update_last_activity_day(user_id=user.id, day=today)
                 await repository.update_days_series(user_id=user.id)
+
+                new_xp = profile.experience + 50
+                if profile.experience // 100 < new_xp // 100:
+                    await level_up(event.bot, user.id, new_xp // 100 + 1)
+                await repository.add_experience(user_id=user.id, experience=50)
+
             elif diff == 1:
                 if (profile.days_series + 1) % 5 == 0 and (profile.days_series + 1) > 0:
                     new_xp = profile.experience + 25
                     if profile.experience // 100 < new_xp // 100:
                         await level_up(event.bot, user.id, new_xp // 100 + 1)
                     await repository.add_experience(user_id=user.id, experience=25)
+                
+                new_xp = profile.experience + 50
+                if profile.experience // 100 < new_xp // 100:
+                    await level_up(event.bot, user.id, new_xp // 100 + 1)
+                await repository.add_experience(user_id=user.id, experience=50)
 
                 await repository.update_last_activity_day(user_id=user.id, day=today)
                 await repository.update_days_series(user_id=user.id, days=profile.days_series + 1)

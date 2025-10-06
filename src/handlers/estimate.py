@@ -35,34 +35,36 @@ async def ask_connect(bot: Bot, user_id: int, teammate: str, teammate_id: int, s
         reply_markup=await get_connect_kb()
     )
 
-@router.message(F.text.in_(CONNECT_LIST))
-async def handle_connect_answer(message: Message, state: FSMContext):
-    answer = message.text
+@router.callback_query(F.data.in_(["in_process", "success", "fail"]))
+async def handle_connect_answer(callback: CallbackQuery, state: FSMContext):
+    answer = callback.data
+
+    await callback.answer()
     
     # Сохраняем имя тиммейта в состоянии (предполагается, что оно передается откуда-то)
     data = await state.get_data()
     teammate = data.get('teammate', 'тиммейт')
     
-    if answer == "Да, получилось✅":
-        await message.answer(
+    if answer == "success":
+        await callback.message.answer(
             TEXT_SUCCESS,
             reply_markup=ReplyKeyboardRemove()
         )
 
-        await message.answer(
+        await callback.message.answer(
             TEXT_POLITENESS.format(teammate=teammate),
             reply_markup=await get_scale_kb("politeness")
         )
         await state.set_state(EstimateStates.politeness)
         
-    elif answer == "В процессе⌛":
-        await message.answer(
+    elif answer == "in_process":
+        await callback.message.answer(
             TEXT_IN_PROCESS.format(teammate=teammate),
             reply_markup=await get_success_kb()
         )
         
-    elif answer == "Нет ❌":
-        await message.answer(
+    elif answer == "fail":
+        await callback.message.answer(
             TEXT_FAILED,
             reply_markup=await get_search_kb()
         )

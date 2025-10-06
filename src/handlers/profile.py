@@ -26,35 +26,61 @@ TEXT_PROFILE_ACTIVATED = "Твоя анкета успешно размещен�
 TEXT_YOUR_CHOICE = "Ты уверен? Знай, это твой выбор\n"
 
 
-@router.callback_query(F.data == "update_profile")
-async def update_profile(callback: CallbackQuery):
-    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_update_profile_kb(user_id=callback.from_user.id)).as_markup())
+@router.message(Command("profile"))
+async def update_profile(message: Message):
+    await message.answer(text=TEXT_INTRO, reply_markup=(await get_profile_kb(user_id=message.from_user.id)).as_markup())
+
+@router.callback_query(F.data == "profile")
+async def update_profile_callback(callback: CallbackQuery):
+    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_profile_kb(user_id=callback.from_user.id)).as_markup())
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("read_profile"))
-async def read_profile(callback: CallbackQuery):
+async def read_profile(callback: CallbackQuery, state: FSMContext):
 
     callback_parts = callback.data.split("_")
     user_id = int(callback_parts[-1])
     type_user = callback_parts[-2]
 
+    if type_user == "other":
+        data = await state.get_data()
+        if "game" in data:
+            game = data["game"]
+        else:
+            await callback.message.answer("Я потерял игру, по которой производится поиск. Попробуйте заново")
+            await callback.answer()
+            return 
+    
+
     if profile := await repository.get_profile(user_id=user_id):
 
-        keyboard = await get_interaction_kb(user_id=user_id, game=profile.game) if type_user == "other" else None
+        games = {game.name: game.rank for game in profile.games}
+
+        user_rank = None
+        if type_user == "other":
+            if games[game]:
+                user_rank = f"\n<b>Ранг:</b> {games[game]}"
+            else:
+                user_rank = f"\n<b>Ранг:</b> Не указан"
+
+        else:
+            user_rank = ""
+
+        keyboard = await get_interaction_kb(user_id=user_id, game=game) if type_user == "other" else None
         prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
         profile_text = prefix + FULL_PROFILE_SAMPLE.format(
             nickname=profile.nickname,
-            telegram_tag=profile.telegram_tag if profile.telegram_tag else "Нет",
+            telegram_tag= "@" + profile.telegram_tag if profile.telegram_tag else "Нет",
             gender=profile.gender if profile.gender else "Нет",
             level=profile.experience // 100 + 1,
             polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
             skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
             team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
-            games=", ".join(game.name for game in profile.games),
-            about=profile.about,
-            goal=profile.goal,
+            games=profile.games_str,
+            rank=user_rank,
+            add_info=PROFILE_ADD_INFO.format(about=profile.about, goal=profile.goal)
         )
 
         if profile.photo:
@@ -68,7 +94,7 @@ async def read_profile(callback: CallbackQuery):
             except:
                 pass
         await callback.message.answer(
-                    text=profile_text + PHOTO_SAMPLE,
+                    text=profile_text,
                     reply_markup=keyboard
                 )
 
@@ -77,16 +103,6 @@ async def read_profile(callback: CallbackQuery):
     
     await callback.answer()
 
-
-@router.callback_query(F.data == "recreate_profile")
-async def recreate_profile(callback: CallbackQuery, state: FSMContext):
-    await repository.delete_profile(user_id=callback.from_user.id)
-    await state.update_data(
-        user_id=callback.from_user.id,
-        chat_id=callback.message.chat.id
-    )
-    await start_profile(callback.bot, state)
-    await callback.answer()
 
 @router.callback_query(F.data == "delete_profile")
 async def delete_profile(callback: CallbackQuery):

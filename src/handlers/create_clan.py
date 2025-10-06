@@ -26,8 +26,7 @@ TEXT_NAME = "Введи название клана."
 TEXT_GAME = "Выбери игру, в которую ищешь тиммейтов:"
 TEXT_DESCRIPTION = "Введи описание клана."
 TEXT_DEMANDS = "Введи требования для участия в клане."
-TEXT_PHOTO = "Отправь фото профиля."
-TEXT_ALREADY_HAVE_CLAN = "У тебя уже есть клан.\nТы можешь его удалить или изменить в меню /menu"
+TEXT_PHOTO = "Отправь аватарку клана."
 TEXT_ANSWER_TYPE_ERROR = "Ответь текстом."
 TEXT_WRONG_ANSWER = "Выберите ответ из предложенного списка!"
 TEXT_PHOTO_ERROR = 'Пришлите либо фотографию профиля, либо напишите "Пропустите"'
@@ -38,46 +37,47 @@ IS_CLAN_OK = "Все верно?"
 TEXT_SUCCESS = "Отлично! Анкета твоего клана успешно создана и теперь доступна другим игрокам. 👾"
 
 
-@router.message(Command("clan"))
-async def start_clan_with_message(message: Message, state: FSMContext):
+@router.callback_query(F.data == "create_clan")
+async def start_clan_callback(callback: CallbackQuery, state: FSMContext):
     await state.update_data(
-        user_id=message.from_user.id
+        user_id=callback.from_user.id
     )
-    await start_clan(message.bot, state=state)
+    await callback.answer()
+    await start_clan(callback.bot, state=state)
 
 async def start_clan(bot: Bot, state: FSMContext):
     data = await state.get_data()
     user_id = data["user_id"]
 
-    if not await repository.get_clan(user_id=user_id):
-        await bot.send_message(chat_id=user_id, text=TEXT_INTRO)
-        await bot.send_message(chat_id=user_id, text=TEXT_NAME)
-        await state.set_state(ClanForm.name)
-    else:
-        await bot.send_message(chat_id=user_id, text=TEXT_ALREADY_HAVE_CLAN)
+    await bot.send_message(chat_id=user_id, text=TEXT_INTRO)
+    await bot.send_message(chat_id=user_id, text=TEXT_NAME)
+    await state.set_state(ClanForm.name)
 
 @router.message(ClanForm.name)
 async def save_name(message: Message, state: FSMContext):
     if message.text:
         await state.update_data(name=message.text)
-        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb())
+        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=False))
         await state.set_state(ClanForm.game)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.name)
 
-@router.message(ClanForm.game)
-async def save_game(message: Message, state: FSMContext):
-    if message.text:
-        if message.text in GAME_LIST:
-            await state.update_data(game=message.text)
-            await message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
+@router.callback_query(ClanForm.game)
+async def save_game(callback: CallbackQuery, state: FSMContext):
+    game = callback.data.split("_")[-1]
+    await callback.answer()
+
+    if game:
+        if game in GAME_LIST:
+            await state.update_data(game=game)
+            await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
             await state.set_state(ClanForm.description)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER)
+            await callback.message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ClanForm.game)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.game)
 
 @router.message(ClanForm.description)
@@ -94,7 +94,7 @@ async def save_description(message: Message, state: FSMContext):
 async def save_demands(message: Message, state: FSMContext):
     if message.text:
         await state.update_data(demands=message.text)
-        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard())
+        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard(with_back=False))
         await state.set_state(ClanForm.photo)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -156,7 +156,8 @@ async def commit_profile(message: Message, state: FSMContext):
         elif message.text == "Неверно ❌":
             await message.answer(text=TEXT_REPEAT_PROFILE)
             await state.clear()
-            await start_clan_with_message(message, state)
+            await state.update_data(user_id=message.from_user.id)
+            await start_clan(message.bot, state)
         else:
             await message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ClanForm.check)

@@ -22,21 +22,46 @@ TEXT_SEND_PHOTO = "Пришли новое фото клана в чат."
 TEXT_PHOTO_UPDATED = "Фото клана обновлено."
 TEXT_PHOTO_ERROR = 'Пришлите фотографию клана!'
 
-@router.callback_query(F.data == "update_clan")
-async def update_clan(callback: CallbackQuery):
-    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_update_clan_kb(user_id=callback.from_user.id)).as_markup())
+@router.message(Command("clan"))
+async def update_clan(message: Message):
+    await message.answer(text=TEXT_INTRO, reply_markup=(await get_clan_menu_kb()))
+
+@router.callback_query(F.data == "clan")
+async def update_clan_callback(callback: CallbackQuery):
+    await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_clan_menu_kb()))
     await callback.answer()
+
+@router.callback_query(F.data == "get_all_user_clans")
+async def get_all_user_clans(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    await callback.answer()
+    if clans := await repository.get_clans(user_id=user_id):
+        await callback.message.answer(text="Вот все твои кланы:", reply_markup=await get_clans_kb(clans))
+    else:
+        await callback.message.answer(text="У тебя еще нет кланов. Создай его в меню /clan")
+
+
+@router.callback_query(F.data.startswith("detail_clan_"))
+async def detail_clan(callback: CallbackQuery):
+    clan_id = int(callback.data.split("_")[-1])
+    await callback.answer()
+
+    if clan := await repository.get_clan_by_id(clan_id=clan_id):
+        await callback.message.answer(text=f"Вот твой клан {clan.name}:", reply_markup=await get_update_clan_kb(clan_id=clan_id))
+    else:
+        await callback.message.answer(text="Что-то пошло не так... Попробуйте позже")
+
 
 @router.callback_query(F.data.startswith("read_clan"))
 async def read_clan(callback: CallbackQuery):
 
     callback_parts = callback.data.split("_")
-    user_id = int(callback_parts[-1])
+    clan_id = int(callback_parts[-1])
     type_user = callback_parts[-2]
 
-    if clan := await repository.get_clan(user_id=user_id):
+    if clan := await repository.get_clan_by_id(clan_id=clan_id):
 
-        keyboard = await get_interaction_kb(user_id=user_id) if type_user == "other" else None
+        keyboard = await get_interaction_kb(user_id=clan.user_id) if type_user == "other" else None
         prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
         profile_text = prefix + CLAN_SAMPLE.format(
@@ -66,24 +91,28 @@ async def read_clan(callback: CallbackQuery):
     
     await callback.answer() 
 
-@router.callback_query(F.data == "recreate_clan")
+@router.callback_query(F.data.startswith("recreate_clan"))
 async def recreate_clan(callback: CallbackQuery, state: FSMContext):
-    await repository.delete_clan(user_id=callback.from_user.id)
+    clan_id = int(callback.data.split("_")[-1])
+    await repository.delete_clan(clan_id=clan_id)
     await state.update_data(
         user_id=callback.from_user.id
     )
     await start_clan(callback.bot, state)
     await callback.answer()
 
-@router.callback_query(F.data == "delete_clan")
+@router.callback_query(F.data.startswith("delete_clan"))
 async def delete_clan(callback: CallbackQuery):
-    await repository.delete_clan(user_id=callback.from_user.id)
+    clan_id = int(callback.data.split("_")[-1])
+    await repository.delete_clan(clan_id=clan_id)
     await callback.message.answer(text=TEXT_DELETE_CLAN)
     await callback.answer()
 
-@router.callback_query(F.data == "update_clan_photo")
+@router.callback_query(F.data.startswith("update_clan_photo"))
 async def update_photo(callback: CallbackQuery, state: FSMContext):
-    if await repository.get_clan(user_id=callback.from_user.id):
+    clan_id = int(callback.data.split("_")[-1])
+    if await repository.get_clan_by_id(clan_id=clan_id):
+        await state.update_data(clan_id=clan_id)
         await state.set_state(PhotoClanForm.photo)
         await callback.message.answer(text=TEXT_SEND_PHOTO)
     else:
@@ -95,7 +124,8 @@ async def update_photo(callback: CallbackQuery, state: FSMContext):
 @router.message(PhotoClanForm.photo)
 async def update_profile_photo(message: Message, state: FSMContext):
     if message.photo:
-        await repository.update_clan_photo(user_id=message.from_user.id, new_photo=message.photo[-1].file_id)
+        data = await state.get_data()
+        await repository.update_clan_photo(clan_id=data["clan_id"], new_photo=message.photo[-1].file_id)
         await message.answer(text=TEXT_PHOTO_UPDATED)
     else:
         await message.answer(text=TEXT_PHOTO_ERROR)

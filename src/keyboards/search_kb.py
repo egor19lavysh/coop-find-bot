@@ -6,7 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from models.profile import Profile
 
 
-async def get_profiles_kb(profiles: list[Profile], page: int = 0, per_page: int = 2) -> InlineKeyboardMarkup:
+async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, per_page: int = 2) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
     start_idx = page * per_page
@@ -23,7 +23,7 @@ async def get_profiles_kb(profiles: list[Profile], page: int = 0, per_page: int 
         
         builder.add(
             InlineKeyboardButton(
-                text=f"{profile.nickname}, {profile.game}{rating_text}".strip(),
+                text=f"{profile.nickname}, {game}{rating_text}".strip(),
                 callback_data=f"read_profile_other_{profile.user_id}"
             )
         )

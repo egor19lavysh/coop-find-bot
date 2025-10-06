@@ -3,28 +3,16 @@ from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from utils.decorators import require_profile
+from handlers.profile_states import *
 
 
 router = Router()
 
-### ФОРМА ДЛЯ РЕДАКТИРОВАНИЯ АНКЕТЫ
-class EditProfileForm(StatesGroup):
-    choose_field = State()
-    nickname = State()
-    telegram_tag = State()
-    gender = State()
-    games = State()
-    rank = State()
-    add_new_game = State()
-    about = State()
-    goal = State()
-    photo = State()
-    is_active = State()
+
 
 TEXT_CHOOSE_FIELD = "Выбери поле, которое хочешь изменить:"
 TEXT_EDIT_NICKNAME = "Введи новый никнейм:"
@@ -64,6 +52,15 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await state.set_state(EditProfileForm.choose_field)
     await callback.answer()
 
+async def start_edit_profile_message(message: Message, state: FSMContext):
+    await state.update_data(
+        games = {}
+    )
+    
+    await message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_fields_kb())
+    await state.set_state(EditProfileForm.choose_field)
+
+
 
 @router.callback_query(EditProfileForm.choose_field)
 @require_profile
@@ -71,7 +68,7 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
     field = callback.data.split("_")[-1]
     
     await callback.answer()
-    await callback.message.delete_reply_markup()
+    await callback.message.delete()
     
     if field == "nickname":
         await callback.message.answer(TEXT_EDIT_NICKNAME)
@@ -109,8 +106,11 @@ async def update_nickname(message: Message, state: FSMContext):
     if message.text:
         await repository.update_nickname(user_id=message.from_user.id, nickname=message.text)
         await message.answer(TEXT_SUCCESS_EDIT)
-        await message.delete()
-        await state.clear()
+
+        data = await state.get_data()
+        if "process" in data and data["process"] == "creating_profile":
+            await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -127,7 +127,10 @@ async def update_telegram_tag(message: Message, state: FSMContext):
         
         await repository.update_telegram_tag(user_id=message.from_user.id, telegram_tag=telegram_tag)
         await message.answer(TEXT_SUCCESS_EDIT)
-        await state.clear()
+        data = await state.get_data()
+        if "process" in data and data["process"] == "creating_profile":
+            await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -145,7 +148,10 @@ async def update_gender(message: Message, state: FSMContext):
         
         await repository.update_gender(user_id=message.from_user.id, gender=gender)
         await message.answer(TEXT_SUCCESS_EDIT)
-        await state.clear()
+        data = await state.get_data()
+        if "process" in data and data["process"] == "creating_profile":
+            await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -155,6 +161,8 @@ async def update_about(message: Message, state: FSMContext):
     if message.text:
         await repository.update_about(user_id=message.from_user.id, about=message.text)
         await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer("Вернуться к проверке анкеты?", 
+                    reply_markup=await get_back_to_check_kb())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -164,6 +172,10 @@ async def update_goal(message: Message, state: FSMContext):
     if message.text:
         await repository.update_goal(user_id=message.from_user.id, goal=message.text)
         await message.answer(TEXT_SUCCESS_EDIT)
+        data = await state.get_data()
+        if "process" in data and data["process"] == "creating_profile":
+            await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -190,6 +202,10 @@ async def update_photo(message: Message, state: FSMContext):
     
     await repository.update_photo(user_id=message.from_user.id, photo=photo)
     await message.answer(TEXT_SUCCESS_EDIT)
+    data = await state.get_data()
+    if "process" in data and data["process"] == "creating_profile":
+        await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
 
 
 @router.callback_query(EditProfileForm.games)
@@ -263,9 +279,22 @@ async def add_new_game(message: Message, state: FSMContext):
             await repository.update_games(user_id=message.from_user.id, games=games)
 
             await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            data = await state.get_data()
+            if "process" in data and data["process"] == "creating_profile":
+                await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
         else:
             await message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(EditProfileForm.add_new_game)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(EditProfileForm.add_new_game)
+
+@router.callback_query(F.data == "back_to_profile_check")
+async def back_to_profile_check(callback: CallbackQuery, state: FSMContext):
+    """Возврат к проверке анкеты после редактирования"""
+    from handlers.create_profile import check_profile
+    
+    await state.set_state(ProfileForm.check_profile)
+    await check_profile(callback.message, state)
+    await callback.answer()

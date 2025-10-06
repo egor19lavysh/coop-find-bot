@@ -7,22 +7,12 @@ from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from handlers.menu import cmd_menu
+from handlers.edit_profile import start_edit_profile_message
+from handlers.profile_states import *
+
 
 router = Router()
 
-### ФОРМА ДЛЯ АНКЕТЫ
-class ProfileForm(StatesGroup):
-    nickname = State()
-    telegram_tag = State()
-    gender = State()
-    game = State()
-    rank = State()
-    add_new_game = State()
-    about = State()
-    goal = State()
-    photo = State()
-    check_profile = State()
-    is_active = State()
 
 ### ТЕКСТЫ
 TEXT_NICK = "Введи свой никнейм (он будет отображаться в анкете)."
@@ -42,21 +32,22 @@ TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля или 
 TEXT_REPEAT_PROFILE = "Заполни заново свою анкету"
 TEXT_ACCEPTED = "\n\nПодтвеждено ✅"
 TEXT_REJECTED = "\n\nОтклонено ❌"
-TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы можешь ее удалить или изменить в меню /menu"
+TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы можешь ее удалить или изменить"
 IS_PROFILE_OK = "Все верно?"
 TEXT_ADD_GAME = "Добавить еще игру?"
 TEXT_BACK = "Назад"
 
 # В хендлерах замените вызовы клавиатур на:
 
-@router.message(Command("profile"))
-async def start_profile_with_message(message: Message, state: FSMContext):
+@router.callback_query(F.data == "create_profile")
+async def start_profile_with_message(callback: CallbackQuery, state: FSMContext):
     await state.update_data(
-        user_id=message.from_user.id,
-        chat_id=message.chat.id
+        user_id=callback.from_user.id,
+        chat_id=callback.message.chat.id
     )
+    await callback.answer()
 
-    await start_profile(bot=message.bot, state=state)
+    await start_profile(bot=callback.bot, state=state)
 
 async def start_profile(bot: Bot, state: FSMContext):
     data = await state.get_data()
@@ -64,10 +55,11 @@ async def start_profile(bot: Bot, state: FSMContext):
     chat_id = data["chat_id"]
 
     if not await repository.get_profile(user_id=user_id):
-        await bot.send_message(chat_id=chat_id, text=TEXT_NICK, reply_markup=await get_skip_keyboard(with_back=False))
+        await bot.send_message(chat_id=chat_id, text=TEXT_NICK, reply_markup=await get_back_kb())
         await state.update_data(
             games={},
-            game=None
+            game=None,
+            process="creating_profile"
         )
         await state.set_state(ProfileForm.nickname)
     else:
@@ -91,7 +83,7 @@ async def save_nickname(message: Message, state: FSMContext):
 @router.message(ProfileForm.telegram_tag)
 async def save_telegram_tag(message: Message, state: FSMContext):
     if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_NICK, reply_markup=await get_skip_keyboard(with_back=False))
+        await message.answer(text=TEXT_NICK, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.nickname)
         return
     
@@ -223,7 +215,7 @@ async def add_new_game(message: Message, state: FSMContext):
             await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
             await state.set_state(ProfileForm.game)
         elif message.text == "Нет":
-            await message.answer(text=TEXT_ABOUT, reply_markup=await get_skip_keyboard(with_back=True))
+            await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
             await state.set_state(ProfileForm.about)
         else:
             await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
@@ -241,16 +233,16 @@ async def save_about(message: Message, state: FSMContext):
     
     if message.text:
         await state.update_data(about=message.text)
-        await message.answer(text=TEXT_GOAL, reply_markup=await get_skip_keyboard(with_back=True))
+        await message.answer(text=TEXT_GOAL, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.goal)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.about)
 
 @router.message(ProfileForm.goal)
 async def save_goal(message: Message, state: FSMContext):
     if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_ABOUT, reply_markup=await get_skip_keyboard(with_back=True))
+        await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.about)
         return
     
@@ -259,7 +251,7 @@ async def save_goal(message: Message, state: FSMContext):
         await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
         await state.set_state(ProfileForm.photo)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.goal)
 
 @router.message(ProfileForm.photo)
@@ -295,6 +287,7 @@ async def save_photo(message: Message, state: FSMContext):
         await state.set_state(ProfileForm.photo)
         return
 
+    await save_profile(message=message, state=state)
     await check_profile(message=message, state=state)
 
 async def check_profile(message: Message, state: FSMContext):
@@ -337,29 +330,26 @@ async def check_profile(message: Message, state: FSMContext):
     await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=True))
     await state.set_state(ProfileForm.check_profile)
 
-@router.message(ProfileForm.check_profile)
-async def commit_profile(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
+# Удаляем старый хендлер и добавляем новый callback-хендлер
+@router.callback_query(ProfileForm.check_profile, F.data.in_(["profile_correct", "profile_incorrect", "back_from_check"]))
+async def commit_profile(callback: CallbackQuery, state: FSMContext):
+    if callback.data == "back_from_check":
+        await callback.message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
         await state.set_state(ProfileForm.photo)
+        await callback.answer()
         return
     
-    if message.text:
-        if message.text == "Верно ✅":
-            await message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
-            await state.set_state(ProfileForm.is_active)
-            await message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=(await get_status_kb(with_back=True)).as_markup())
-        elif message.text == "Неверно ❌":
-            await message.answer(text="В разработке... пока что все правильно", reply_markup=ReplyKeyboardRemove())
-            await state.set_state(ProfileForm.is_active)
-            await message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=(await get_status_kb(with_back=True)).as_markup())
-        else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_commit_profile_kb(with_back=True))
-            await state.set_state(ProfileForm.check_profile)
-        
-    else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_commit_profile_kb(with_back=True))
-        await state.set_state(ProfileForm.check_profile)
+    if callback.data == "profile_correct":
+        await callback.message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
+        await state.set_state(ProfileForm.is_active)
+        await callback.message.answer(text=TEXT_ALLOW_INVITATIONS, reply_markup=await get_status_kb(with_back=True))
+        await callback.answer()
+    
+    elif callback.data == "profile_incorrect":
+        await callback.message.answer(text="Редактируем анкету...")
+        await start_edit_profile_message(callback.message, state)
+        # Состояние изменится в процессе редактирования, поэтому не меняем его здесь
+        await callback.answer()
 
 @router.callback_query(ProfileForm.is_active)
 async def save_status(callback: CallbackQuery, state: FSMContext):
@@ -369,40 +359,69 @@ async def save_status(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     
+    
+    
     status = callback.data.split("_")[-1]
     if status == "true":
-        await state.update_data(is_active=True)
+        await repository.activate_profile(user_id=callback.from_user.id)
     elif status == "false":
-        await state.update_data(is_active=False)
+        await repository.deactivate_profile(user_id=callback.from_user.id)
     else:
         await callback.message.answer(text=TEXT_WRONG_ANSWER)
         await state.set_state(ProfileForm.is_active)
         return
 
     await callback.bot.edit_message_reply_markup(
-    chat_id=callback.message.chat.id,
-    message_id=callback.message.message_id,
-    reply_markup=None
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
     )
 
     await callback.message.edit_text(text=TEXT_ALLOW_INVITATIONS + TEXT_ACCEPTED if status == "true" else TEXT_REJECTED)
     
-    await save_profile(message=callback.message, state=state)
+    await state.clear()
+
+    await cmd_menu(callback.message)
+
+# @router.callback_query(ProfileForm.is_active)
+# async def save_status(callback: CallbackQuery, state: FSMContext):
+#     if callback.data == "back_from_status":
+#         await callback.message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=True))
+#         await state.set_state(ProfileForm.check_profile)
+#         await callback.answer()
+#         return
+    
+#     status = callback.data.split("_")[-1]
+#     if status == "true":
+#         await state.update_data(is_active=True)
+#     elif status == "false":
+#         await state.update_data(is_active=False)
+#     else:
+#         await callback.message.answer(text=TEXT_WRONG_ANSWER)
+#         await state.set_state(ProfileForm.is_active)
+#         return
+
+#     await callback.bot.edit_message_reply_markup(
+#     chat_id=callback.message.chat.id,
+#     message_id=callback.message.message_id,
+#     reply_markup=None
+#     )
+
+#     await callback.message.edit_text(text=TEXT_ALLOW_INVITATIONS + TEXT_ACCEPTED if status == "true" else TEXT_REJECTED)
+    
+#     await cmd_menu(callback.message)
 
 async def save_profile(message: Message, state: FSMContext):
     data = await state.get_data()
 
     await repository.create_profile(
-        user_id = data["user_id"],
+        user_id = message.from_user.id,
         nickname = data["nickname"],
         games = data["games"],
         about = data["about"],
         goal = data["goal"],
-        is_active = data["is_active"],
+        is_active = data.get("is_activate", True),
         telegram_tag = data["telegram_tag"],
         gender = data["gender"],
         photo = data["photo"]
     )
-
-    await state.clear()
-    await cmd_menu(message)

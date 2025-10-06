@@ -28,9 +28,14 @@ class ClanRepository:
             await session.execute(query)
             await session.commit()
 
-    async def get_clan(self, user_id: int) -> Clan | None:
+    async def get_clans(self, user_id: int) -> list[Clan]:
         async with self.session_factory() as session:
-            clan = (await session.execute(select(Clan).where(Clan.user_id == user_id))).scalar_one_or_none()
+            clan = (await session.execute(select(Clan).where(Clan.user_id == user_id))).scalars().all()
+            return clan
+        
+    async def get_clan_by_id(self, clan_id: int) -> Clan | None:
+        async with self.session_factory() as session:
+            clan = (await session.execute(select(Clan).where(Clan.id == clan_id))).scalar_one_or_none()
             return clan
         
     async def get_clans_by_game(self, game: str, user_id: int) -> list[Clan]:
@@ -38,17 +43,17 @@ class ClanRepository:
             clans = (await session.execute(select(Clan).where(Clan.game == game, Clan.user_id != user_id))).scalars().all()
             return clans
         
-    async def update_clan_photo(self, user_id: int, new_photo: str) -> None:
+    async def update_clan_photo(self, clan_id: int, new_photo: str) -> None:
         async with self.session_factory() as session:
-            if clan := await self.get_clan(user_id=user_id):
+            if clan := await self.get_clan_by_id(clan_id=clan_id):
                 await session.execute(
-                    update(Clan).where(Clan.user_id == user_id).values(photo=new_photo)
+                    update(Clan).where(Clan.id == clan_id).values(photo=new_photo)
                 )
                 await session.commit()
         
-    async def delete_clan(self, user_id: int) -> None:
+    async def delete_clan(self, clan_id: int) -> None:
         async with self.session_factory() as session:
-            if clan := await self.get_clan(user_id=user_id):
+            if clan := await self.get_clan_by_id(clan_id=clan_id):
                 await session.delete(clan)
                 await session.commit()
 

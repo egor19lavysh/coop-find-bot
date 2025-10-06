@@ -3,9 +3,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from utils.constants import CONNECT_LIST
 
 
-async def get_connect_kb() -> ReplyKeyboardMarkup:
-    buttons = [[KeyboardButton(text=btn_text)] for btn_text in CONNECT_LIST]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+async def get_connect_kb() -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="В процессе⌛", callback_data="in_process")],
+        [InlineKeyboardButton(text="Да, получилось✅", callback_data="success")],
+        [InlineKeyboardButton(text="Нет ❌", callback_data="fail")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 async def get_scale_kb(field: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()

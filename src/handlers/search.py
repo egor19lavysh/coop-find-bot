@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
+from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from utils.constants import *
@@ -40,14 +41,23 @@ TEXT_MESSAGE = "Пользователь {name} отправил тебе соо
 TEXT_ADDITIONAL_INFO = "\nЕго тег в телеграме - {tag}"
 TEXT_INVITE = "Пользователь {name} приглашает тебя в {game}."
 
+@router.message(Command("search"))
+async def start_search(message: Message, state: FSMContext):
+    await state.set_state(GameForm.search_type)
+    await message.answer(
+        text=TEXT_CHOOSE_SEARCH_TYPE, 
+        reply_markup=await get_search_type_kb()
+    )
+
 @router.callback_query(F.data == "start_search")
-async def start_search(callback: CallbackQuery, state: FSMContext):
+async def start_search_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(GameForm.search_type)
     await callback.message.answer(
         text=TEXT_CHOOSE_SEARCH_TYPE, 
         reply_markup=await get_search_type_kb()
     )
     await callback.answer()
+
 
 @router.callback_query(F.data.startswith("search_type_"))
 async def choose_search_type(callback: CallbackQuery, state: FSMContext):
@@ -82,7 +92,7 @@ async def get_profiles_by_game_callback(callback: CallbackQuery, state: FSMConte
         await state.clear()
         await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")
         
-        keyboard = await get_profiles_kb(profiles, page=0)
+        keyboard = await get_profiles_kb(profiles, game=game, page=0)
         await callback.message.edit_text(
             text=TEXT_PROFILES_FOUND,
             reply_markup=keyboard
@@ -113,45 +123,13 @@ async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext)
     page = int(callback.data.split("_")[-1])
     data = await state.get_data()
     profiles = data.get("profiles", [])
+    game = data["game"]
     
     if profiles:
         await state.update_data(current_page=page)
-        keyboard = await get_profiles_kb(profiles, page=page)
+        keyboard = await get_profiles_kb(profiles, game=game, page=page)
         await callback.message.edit_reply_markup(reply_markup=keyboard)
     
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("read_profile_other_"))
-async def read_other_profile(callback: CallbackQuery, state: FSMContext):
-    user_id = int(callback.data.split("_")[-1])
-    data = await state.get_data()
-    game = data.get("game")
-    
-    profile = await repository.get_profile(user_id)
-    if not profile:
-        await callback.answer("Профиль не найден")
-        return
-    
-    # Формируем текст профиля
-    profile_text = f"<b>Ник</b>:{profile.nickname}\n"
-    profile_text += f"<b>Игра</b>: {profile.game}\n"
-    profile_text += f"<b>Ранг</b>: {profile.rank or 'Не указан'}\n"
-    profile_text += f"<b>Цель</b>: {profile.goal}\n"
-    
-    if profile.polite is not None and profile.team_game is not None and profile.skill is not None:
-        rating = round((profile.polite + profile.team_game + profile.skill) / 3, 1)
-        profile_text += f"<b>Рейтинг</b>: {rating}\n"
-    else:
-        profile_text += f"<b>Рейтинг</b>: Нет оценок\n"
-    
-    # Создаем клавиатуру с кнопками действий
-    keyboard = await get_profile_action_kb(user_id, game)
-    
-    await callback.message.edit_text(
-        text=profile_text,
-        reply_markup=keyboard,
-    )
     await callback.answer()
 
 @router.callback_query(F.data.startswith("send_message_to_user_"))
@@ -311,7 +289,8 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     join_message += f"🎮 Игра: {clan.game}\n"
     
     if user_profile:
-        join_message += f"📊 Ранг: {user_profile.rank or 'Не указан'}\n"
+        games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
+        join_message += f"📊 Ранг: {games.get(clan.game, None) or 'Не указан'}\n"
         join_message += f"🎯 Цель: {user_profile.goal}\n"
     
     if callback.from_user.username:
@@ -368,7 +347,7 @@ async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
             profiles = await repository.get_profiles_by_game(game=game, user_id=callback.from_user.id)
             if profiles:
                 await state.update_data(profiles=profiles, current_page=0)
-                keyboard = await get_profiles_kb(profiles, page=0)
+                keyboard = await get_profiles_kb(profiles, game=game, page=0)
                 await callback.message.edit_text(
                     text=TEXT_PROFILES_FOUND,
                     reply_markup=keyboard

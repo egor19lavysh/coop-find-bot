@@ -43,7 +43,10 @@ FULL_PROFILE_SAMPLE = """
 <b>Вежливость:</b> {polite}
 <b>Скилл:</b> {skill}
 <b>Командная игра:</b> {team_game}
-<b>Игры:</b> {games}
+<b>Игры:</b> {games}{rank}{add_info}
+"""
+
+PROFILE_ADD_INFO = """
 <b>О себе:</b> {about}
 <b>Цель:</b> {goal}
 """

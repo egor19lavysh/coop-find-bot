@@ -56,9 +56,16 @@ class ProfileRepository:
     async def get_profiles_by_game(self, game: str, user_id: int) -> list[Profile]:
         async with self.session_factory() as session:
             result = await session.execute(
-                select(Profile).where(Profile.game == game, Profile.is_active, Profile.user_id != user_id)
+                select(Profile)
+                .join(Profile.games)
+                .where(
+                    Game.name == game,
+                    Profile.is_active == True,
+                    Profile.user_id != user_id
+                )
+                .distinct()
             )
-            return result.scalars().all()
+        return result.scalars().all()
 
     async def update_photo(self, user_id: int, photo: str) -> None:
         async with self.session_factory() as session:
@@ -255,8 +262,14 @@ class ProfileRepository:
         async with self.session_factory() as session:
             await session.execute(delete(Game).where(Game.profile_id == profile_id))
             await session.commit()
-            
 
+    
+    async def get_games_by_user_id(self, user_id: int) -> list[Game]:
+        if profile := await self.get_profile(user_id=user_id):
+            async with self.session_factory() as session:
+                return (await session.execute(select(Game).where(Game.profile_id == profile.id))).scalars().all()
+            
+            
     async def delete_profile(self, user_id: int) -> None:
         async with self.session_factory() as session:
             profile = await self.get_profile(user_id=user_id)

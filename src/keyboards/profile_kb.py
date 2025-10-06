@@ -15,6 +15,13 @@ async def get_skip_keyboard(with_back: bool = True) -> ReplyKeyboardMarkup:
         one_time_keyboard=True
     )
 
+async def get_back_kb() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=TEXT_BACK)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
 async def get_gender_keyboard(with_back: bool = True) -> ReplyKeyboardMarkup:
     buttons = [
         [KeyboardButton(text="Мужской")],
@@ -80,37 +87,23 @@ async def get_tag_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
 
-async def get_commit_profile_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
-    buttons = [
-        [KeyboardButton(text="Верно ✅")],
-        [KeyboardButton(text="Неверно ❌")]
-    ]
-    
-    if with_back:
-        buttons.append([KeyboardButton(text=TEXT_BACK)])
-    
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True
-    )
-    return keyboard
-
-async def get_status_kb(with_back: bool = True) -> InlineKeyboardBuilder:
+async def get_commit_profile_kb(with_back: bool = False):
     builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(text="Подтвердить ✅", callback_data="is_active_true")
-    )
-    builder.add(
-        InlineKeyboardButton(text="Отклонить ❌", callback_data="is_active_false")
-    )
-    
+    builder.button(text="Верно ✅", callback_data="profile_correct")
+    builder.button(text="Неверно ❌", callback_data="profile_incorrect")
     if with_back:
-        builder.add(
-            InlineKeyboardButton(text="Назад", callback_data="back_from_status")
-        )
-    
-    builder.adjust(1)
-    return builder
+        builder.button(text=TEXT_BACK, callback_data="back_from_check")
+    builder.adjust(2)
+    return builder.as_markup()
+
+async def get_status_kb(with_back: bool = False):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Разрешить ✅", callback_data="status_true")
+    builder.button(text="Запретить ❌", callback_data="status_false")
+    if with_back:
+        builder.button(text=TEXT_BACK, callback_data="back_from_status")
+    builder.adjust(2)
+    return builder.as_markup()
 
 # Остальные клавиатуры остаются без изменений
 async def get_game_inline_kb() -> InlineKeyboardMarkup:
@@ -126,12 +119,12 @@ async def get_game_inline_kb() -> InlineKeyboardMarkup:
     builder.adjust(2)
     return builder.as_markup()
 
-async def get_update_profile_kb(user_id: int) -> InlineKeyboardBuilder:
+async def get_profile_kb(user_id: int) -> InlineKeyboardBuilder:
     buttons = [
+        InlineKeyboardButton(text="Создать анкету", callback_data="create_profile"),
         InlineKeyboardButton(text="Показать профиль", callback_data=f"read_profile_self_{user_id}"),
-        InlineKeyboardButton(text="Заполнить анкету заново 📝", callback_data="edit_profile"),
+        InlineKeyboardButton(text="Изменить анкету📝", callback_data="edit_profile"),
         InlineKeyboardButton(text="Удалить анкету❌", callback_data="delete_profile"),
-        InlineKeyboardButton(text="Изменить фото 🖼️", callback_data="update_photo"),
         InlineKeyboardButton(text="Снять анкету ⏸️", callback_data="deactivate_profile"),
         InlineKeyboardButton(text="Разместить анкету 📢", callback_data="activate_profile")
     ]
@@ -196,3 +189,9 @@ async def get_edit_fields_kb():
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+async def get_back_to_check_kb():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Вернуться к проверке", callback_data="back_to_profile_check")
+    return builder.as_markup()
