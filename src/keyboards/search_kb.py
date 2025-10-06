@@ -4,6 +4,7 @@ from models.profile import Profile
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from models.profile import Profile
+from utils.constants import *
 
 
 async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, per_page: int = 2) -> InlineKeyboardMarkup:
@@ -74,7 +75,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     builder.row(
         InlineKeyboardButton(
             text="Назад",
-            callback_data="close_profiles_list"
+            callback_data=f"search_type_profiles"
         )
     )
     
@@ -100,7 +101,13 @@ async def get_search_type_kb() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(
             text="Кланы", 
             callback_data="search_type_clans"
-        )]
+        )],
+        [
+            InlineKeyboardButton(
+            text="Назад", 
+            callback_data="menu"
+        )
+        ]
     ]
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -154,7 +161,7 @@ async def get_clans_kb(clans, page=0, per_page=2):
     builder.row(
         InlineKeyboardButton(
             text="Назад",
-            callback_data="close_clans_list"
+            callback_data=f"search_type_clans"
         )
     )
 
@@ -208,3 +215,23 @@ async def get_profile_action_kb(user_id: int, game: str) -> InlineKeyboardMarkup
     ]
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+async def get_game_inline_kb() -> InlineKeyboardMarkup:
+    """Inline клавиатура для выбора игр"""
+    builder = InlineKeyboardBuilder()
+    
+    for game in GAME_LIST:
+        builder.add(InlineKeyboardButton(
+            text=game,
+            callback_data=f"get_profiles_by_{game}"
+        ))
+    
+    builder.adjust(2)
+
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="start_search"))
+    return builder.as_markup()
+
+async def get_back_to_games_kb(search_type: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data=f"search_type_{search_type}")]]
+    )

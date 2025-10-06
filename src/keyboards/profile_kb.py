@@ -126,7 +126,8 @@ async def get_profile_kb(user_id: int) -> InlineKeyboardBuilder:
         InlineKeyboardButton(text="Изменить анкету📝", callback_data="edit_profile"),
         InlineKeyboardButton(text="Удалить анкету❌", callback_data="delete_profile"),
         InlineKeyboardButton(text="Снять анкету ⏸️", callback_data="deactivate_profile"),
-        InlineKeyboardButton(text="Разместить анкету 📢", callback_data="activate_profile")
+        InlineKeyboardButton(text="Разместить анкету 📢", callback_data="activate_profile"),
+        InlineKeyboardButton(text="Назад", callback_data="menu")
     ]
 
     builder = InlineKeyboardBuilder()
@@ -184,7 +185,7 @@ async def get_edit_fields_kb():
            InlineKeyboardButton(text="Фото", callback_data="edit_photo")
         ],
         [
-            InlineKeyboardButton(text="Отмена", callback_data="edit_cancel"),
+            InlineKeyboardButton(text="Отмена", callback_data="profile"),
         ]
     ]
 
@@ -195,3 +196,6 @@ async def get_back_to_check_kb():
     builder = InlineKeyboardBuilder()
     builder.button(text="Вернуться к проверке", callback_data="back_to_profile_check")
     return builder.as_markup()
+
+async def get_back_to_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="profile")]])

@@ -24,7 +24,10 @@ class GameForm(StatesGroup):
     game = State()
 
 ### НОВЫЕ ТЕКСТЫ
-TEXT_CHOOSE_SEARCH_TYPE = "Что ищем?"
+TEXT_CHOOSE_SEARCH_TYPE = """Выбери, кого хочешь найти:
+🗡️ Анкеты игроков — если ищешь одного игрока.
+🛡️ Кланы — если хочешь найти сообщество игроков.
+"""
 TEXT_CHOOSE_GAME = "Выбери игру для поиска"
 TEXT_NO_CLANS = "Активных кланов по {game} не нашлось..."
 TEXT_CLANS_FOUND = "Найденные кланы:"
@@ -43,6 +46,7 @@ TEXT_INVITE = "Пользователь {name} приглашает тебя в 
 
 @router.message(Command("search"))
 async def start_search(message: Message, state: FSMContext):
+    await message.delete()
     await state.set_state(GameForm.search_type)
     await message.answer(
         text=TEXT_CHOOSE_SEARCH_TYPE, 
@@ -51,6 +55,7 @@ async def start_search(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "start_search")
 async def start_search_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     await state.set_state(GameForm.search_type)
     await callback.message.answer(
         text=TEXT_CHOOSE_SEARCH_TYPE, 
@@ -62,11 +67,13 @@ async def start_search_callback(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("search_type_"))
 async def choose_search_type(callback: CallbackQuery, state: FSMContext):
     search_type = callback.data.split("_")[-1]  # profiles или clans
+
+    await callback.message.delete()
     
     await state.update_data(search_type=search_type)
     await state.set_state(GameForm.game)
     
-    await callback.message.edit_text(
+    await callback.message.answer(
         text=TEXT_CHOOSE_GAME,
         reply_markup=await get_game_inline_kb()
     )
@@ -74,6 +81,8 @@ async def choose_search_type(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("get_profiles_by_"))
 async def get_profiles_callback_handler(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     game = callback.data.split("_")[-1]
     data = await state.get_data()
     search_type = data.get("search_type", "profiles")
@@ -87,6 +96,7 @@ async def get_profiles_callback_handler(callback: CallbackQuery, state: FSMConte
 
 async def get_profiles_by_game_callback(callback: CallbackQuery, state: FSMContext, game: str):
     profiles = await repository.get_profiles_by_game(game=game, user_id=callback.from_user.id)
+    #await callback.message.delete()
     
     if profiles:
         await state.clear()
@@ -95,14 +105,16 @@ async def get_profiles_by_game_callback(callback: CallbackQuery, state: FSMConte
         keyboard = await get_profiles_kb(profiles, game=game, page=0)
         await callback.message.edit_text(
             text=TEXT_PROFILES_FOUND,
-            reply_markup=keyboard
         )
+        await callback.message.edit_reply_markup(reply_markup=keyboard)
     else:
         await callback.message.edit_text(text=TEXT_NO_PROFILES.format(game=game))
+        await callback.message.edit_reply_markup(reply_markup=await get_back_to_games_kb("profiles"))
         await state.clear()
 
 async def get_clans_by_game_callback(callback: CallbackQuery, state: FSMContext, game: str):
     clans = await clan_repository.get_clans_by_game(game=game, user_id=callback.from_user.id)
+    #await callback.message.delete()
     
     if clans:
         await state.clear()
@@ -110,16 +122,19 @@ async def get_clans_by_game_callback(callback: CallbackQuery, state: FSMContext,
         
         keyboard = await get_clans_kb(clans, page=0)
         await callback.message.edit_text(
-            text=TEXT_CLANS_FOUND,
-            reply_markup=keyboard
+            text=TEXT_CLANS_FOUND
         )
+        await callback.message.edit_reply_markup(reply_markup=keyboard)
     else:
         await callback.message.edit_text(text=TEXT_NO_CLANS.format(game=game))
+        await callback.message.edit_reply_markup(reply_markup=await get_back_to_games_kb("clans"))
         await state.clear()
 
 # Хендлеры для профилей
 @router.callback_query(F.data.startswith("profiles_page_"))
 async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     page = int(callback.data.split("_")[-1])
     data = await state.get_data()
     profiles = data.get("profiles", [])
@@ -134,6 +149,7 @@ async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext)
 
 @router.callback_query(F.data.startswith("send_message_to_user_"))
 async def send_message(callback: CallbackQuery, state: FSMContext):
+
     user_id = int(callback.data.split("_")[-1])
     
     data = await state.get_data()
@@ -192,6 +208,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith("invite_user_"))
 async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: AsyncIOScheduler):
+
     callback_parts = callback.data.split("_")
     teammate_id = int(callback_parts[-1])
     game = callback_parts[-2]
@@ -233,6 +250,8 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
 # Хендлеры для кланов
 @router.callback_query(F.data.startswith("clans_page_"))
 async def handle_clans_pagination(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     page = int(callback.data.split("_")[-1])
     data = await state.get_data()
     clans = data.get("clans", [])
@@ -246,6 +265,8 @@ async def handle_clans_pagination(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("view_clan_"))
 async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     clan_id = int(callback.data.split("_")[-1])
     data = await state.get_data()
     clans = data.get("clans", [])
@@ -272,6 +293,8 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("join_clan_"))
 async def join_clan(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     clan_id = int(callback.data.split("_")[-1])
     data = await state.get_data()
     clans = data.get("clans", [])
@@ -315,6 +338,8 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("back_to_clans"))
 async def back_to_clans(callback: CallbackQuery, state: FSMContext):
+    # await callback.message.delete()
+
     data = await state.get_data()
     game = data.get("game")
     
@@ -332,12 +357,14 @@ async def back_to_clans(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "close_clans_list")
 async def close_clans_list(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete()
+    #await callback.message.delete()
     await state.clear()
     await callback.answer()
 
 @router.callback_query(F.data == "back_to_profiles")
 async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     data = await state.get_data()
     game = data.get("game")
     search_type = data.get("search_type", "profiles")
@@ -365,10 +392,14 @@ async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "close_profiles_list")
 async def close_profiles_list(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
     await callback.message.delete()
     await state.clear()
     await callback.answer()
 
 @router.callback_query(F.data == "current_page")
 async def handle_current_page(callback: CallbackQuery):
+    #await callback.message.delete()
+
     await callback.answer()

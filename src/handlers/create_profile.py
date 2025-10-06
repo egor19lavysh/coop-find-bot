@@ -41,6 +41,7 @@ TEXT_BACK = "Назад"
 
 @router.callback_query(F.data == "create_profile")
 async def start_profile_with_message(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     await state.update_data(
         user_id=callback.from_user.id,
         chat_id=callback.message.chat.id
@@ -68,7 +69,7 @@ async def start_profile(bot: Bot, state: FSMContext):
 @router.message(ProfileForm.nickname)
 async def save_nickname(message: Message, state: FSMContext):
     if message.text == TEXT_BACK:
-        await message.answer("Создание анкеты отменено.", reply_markup=ReplyKeyboardRemove())
+        await message.answer("Создание анкеты отменено.", reply_markup=await get_back_to_menu())
         await state.clear()
         return
     

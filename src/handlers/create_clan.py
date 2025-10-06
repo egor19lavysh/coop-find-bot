@@ -4,6 +4,7 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
+from keyboards.clan_kb import get_commit_clan_kb
 from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from handlers.menu import cmd_menu
@@ -39,6 +40,8 @@ TEXT_SUCCESS = "Отлично! Анкета твоего клана успеш�
 
 @router.callback_query(F.data == "create_clan")
 async def start_clan_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    
     await state.update_data(
         user_id=callback.from_user.id
     )
@@ -143,30 +146,30 @@ async def check_profile(message: Message, state: FSMContext):
             ) + PHOTO_SAMPLE
         )
 
-    await message.answer(text=IS_CLAN_OK, reply_markup=await get_commit_profile_kb())
+    await message.answer(text=IS_CLAN_OK, reply_markup=await get_commit_clan_kb())
     await state.set_state(ClanForm.check)
 
 
-@router.message(ClanForm.check)
-async def commit_profile(message: Message, state: FSMContext):
-    if message.text:
-        if message.text == "Верно ✅":
-            await message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
-            await save_clan(message, state)
-        elif message.text == "Неверно ❌":
-            await message.answer(text=TEXT_REPEAT_PROFILE)
+@router.callback_query(ClanForm.check)
+async def commit_profile(callback: CallbackQuery, state: FSMContext):
+    if callback.data:
+        if callback.data == "clan_correct":
+            await callback.message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
+            await save_clan(callback, state, user_id=callback.from_user.id)
+        elif callback.data == "clan_incorrect":
+            await callback.message.answer(text=TEXT_REPEAT_PROFILE)
             await state.clear()
-            await state.update_data(user_id=message.from_user.id)
-            await start_clan(message.bot, state)
+            await state.update_data(user_id=callback.from_user.id)
+            await start_clan(callback.bot, state)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER)
+            await callback.message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ClanForm.check)
         
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.check.check_profile)
 
-async def save_clan(message: Message, state: FSMContext):
+async def save_clan(callback: CallbackQuery, state: FSMContext, user_id: int):
     data = await state.get_data()
 
     name = data["name"]
@@ -176,7 +179,7 @@ async def save_clan(message: Message, state: FSMContext):
     photo = data["photo"]
 
     await repository.create_clan(
-        user_id=message.from_user.id,
+        user_id=user_id,
         name=name,
         game=game,
         description=description,
@@ -185,4 +188,4 @@ async def save_clan(message: Message, state: FSMContext):
     )
 
     await state.clear()
-    await cmd_menu(message)
+    await cmd_menu(callback.message)

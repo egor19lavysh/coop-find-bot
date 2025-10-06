@@ -28,16 +28,20 @@ TEXT_YOUR_CHOICE = "Ты уверен? Знай, это твой выбор\n"
 
 @router.message(Command("profile"))
 async def update_profile(message: Message):
+    await message.delete()
     await message.answer(text=TEXT_INTRO, reply_markup=(await get_profile_kb(user_id=message.from_user.id)).as_markup())
 
 @router.callback_query(F.data == "profile")
 async def update_profile_callback(callback: CallbackQuery):
+    await callback.message.delete()
     await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_profile_kb(user_id=callback.from_user.id)).as_markup())
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("read_profile"))
 async def read_profile(callback: CallbackQuery, state: FSMContext):
+
+    await callback.message.delete()
 
     callback_parts = callback.data.split("_")
     user_id = int(callback_parts[-1])
@@ -67,7 +71,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         else:
             user_rank = ""
 
-        keyboard = await get_interaction_kb(user_id=user_id, game=game) if type_user == "other" else None
+        keyboard = await get_interaction_kb(user_id=user_id, game=game) if type_user == "other" else await get_back_to_menu()
         prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
         profile_text = prefix + FULL_PROFILE_SAMPLE.format(
@@ -99,50 +103,32 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
                 )
 
     else:
-        await callback.message.answer(text=TEXT_NO_PROFILE)
+        await callback.message.answer(text=TEXT_NO_PROFILE, reply_markup=await get_back_to_menu())
     
     await callback.answer()
 
 
 @router.callback_query(F.data == "delete_profile")
 async def delete_profile(callback: CallbackQuery):
+    await callback.message.delete()
     await repository.delete_profile(user_id=callback.from_user.id)
-    await callback.message.answer(text=TEXT_DELETE_PROFILE)
+    await callback.message.answer(text=TEXT_DELETE_PROFILE, reply_markup=await get_back_to_menu())
     await callback.answer()
-
-@router.callback_query(F.data == "update_photo")
-async def update_photo(callback: CallbackQuery, state: FSMContext):
-    if await repository.get_profile(user_id=callback.from_user.id):
-        await state.set_state(PhotoForm.photo)
-        await callback.message.answer(text=TEXT_SEND_PHOTO)
-    else:
-        await callback.message.answer(text=TEXT_NO_PROFILE)
-    
-    await callback.answer()
-
-
-@router.message(PhotoForm.photo)
-async def update_profile_photo(message: Message, state: FSMContext):
-    if message.photo:
-        await repository.update_photo(user_id=message.from_user.id, photo=message.photo[-1].file_id)
-        await message.answer(text=TEXT_PHOTO_UPDATED)
-    else:
-        await message.answer(text=TEXT_PHOTO_ERROR)
-
-    await state.clear()
 
 @router.callback_query(F.data.in_(["deactivate_profile", "activate_profile"]))
 async def deactivate_profile(callback: CallbackQuery):
+    await callback.message.delete()
+
     if await repository.get_profile(user_id=callback.from_user.id):
         if callback.data == "deactivate_profile":
             await repository.deactivate_profile(user_id=callback.from_user.id)
-            await callback.message.answer(text=TEXT_PROFILE_DEACTIVATED)
+            await callback.message.answer(text=TEXT_PROFILE_DEACTIVATED, reply_markup=await get_back_to_menu())
         else:
             await repository.activate_profile(user_id=callback.from_user.id)
-            await callback.message.answer(text=TEXT_PROFILE_ACTIVATED)
+            await callback.message.answer(text=TEXT_PROFILE_ACTIVATED, reply_markup=await get_back_to_menu())
 
     else:
-        await callback.message.answer(text=TEXT_NO_PROFILE)
+        await callback.message.answer(text=TEXT_NO_PROFILE, reply_markup=await get_back_to_menu())
 
     await callback.answer()
 

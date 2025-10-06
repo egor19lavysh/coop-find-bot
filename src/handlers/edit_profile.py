@@ -44,6 +44,8 @@ TEXT_GAME = "Выбери игры, в которую ищешь тиммейт�
 @router.callback_query(F.data == "edit_profile")
 @require_profile
 async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+
     await state.update_data(
         games = {}
     )
@@ -53,6 +55,8 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 async def start_edit_profile_message(message: Message, state: FSMContext):
+    await message.delete()
+
     await state.update_data(
         games = {}
     )
@@ -105,7 +109,7 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
 async def update_nickname(message: Message, state: FSMContext):
     if message.text:
         await repository.update_nickname(user_id=message.from_user.id, nickname=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
 
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
@@ -126,7 +130,7 @@ async def update_telegram_tag(message: Message, state: FSMContext):
             telegram_tag = message.text
         
         await repository.update_telegram_tag(user_id=message.from_user.id, telegram_tag=telegram_tag)
-        await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await message.answer("Вернуться к проверке анкеты?", 
@@ -160,7 +164,7 @@ async def update_gender(message: Message, state: FSMContext):
 async def update_about(message: Message, state: FSMContext):
     if message.text:
         await repository.update_about(user_id=message.from_user.id, about=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         await message.answer("Вернуться к проверке анкеты?", 
                     reply_markup=await get_back_to_check_kb())
     else:
@@ -171,7 +175,7 @@ async def update_about(message: Message, state: FSMContext):
 async def update_goal(message: Message, state: FSMContext):
     if message.text:
         await repository.update_goal(user_id=message.from_user.id, goal=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await message.answer("Вернуться к проверке анкеты?", 
@@ -201,7 +205,7 @@ async def update_photo(message: Message, state: FSMContext):
         return
     
     await repository.update_photo(user_id=message.from_user.id, photo=photo)
-    await message.answer(TEXT_SUCCESS_EDIT)
+    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     data = await state.get_data()
     if "process" in data and data["process"] == "creating_profile":
         await message.answer("Вернуться к проверке анкеты?", 
@@ -278,7 +282,7 @@ async def add_new_game(message: Message, state: FSMContext):
             games = data["games"]
             await repository.update_games(user_id=message.from_user.id, games=games)
 
-            await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
             data = await state.get_data()
             if "process" in data and data["process"] == "creating_profile":
                 await message.answer("Вернуться к проверке анкеты?", 
