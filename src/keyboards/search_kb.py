@@ -20,6 +20,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
             rating = round(sa, 1)
         else:
             rating = None
+        print(rating)
         rating_text = f" {rating}⭐" if rating is not None else ""
         
         builder.add(
@@ -81,15 +82,15 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     
     return builder.as_markup()
 
-async def get_back_kb(game: str) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(
-            text="Назад",
-            callback_data="back_to_profiles"
-        )
-    )
-    return builder.as_markup()
+# async def get_back_kb() -> InlineKeyboardMarkup:
+#     builder = InlineKeyboardBuilder()
+#     builder.add(
+#         InlineKeyboardButton(
+#             text="Назад",
+#             callback_data="back_to_profiles"
+#         )
+#     )
+#     return builder.as_markup()
 
 
 async def get_search_type_kb() -> InlineKeyboardMarkup:
@@ -183,7 +184,7 @@ async def get_clan_detail_kb(clan_id: int, game: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 # keyboards/search_kb.py
-async def get_back_kb(game: str, search_type: str = "profiles") -> InlineKeyboardMarkup:
+async def get_back_kb(search_type: str = "profiles") -> InlineKeyboardMarkup:
     callback_data = "back_to_profiles" if search_type == "profiles" else "back_to_clans"
     
     buttons = [

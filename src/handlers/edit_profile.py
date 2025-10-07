@@ -55,7 +55,6 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 async def start_edit_profile_message(message: Message, state: FSMContext):
-    await message.delete()
 
     await state.update_data(
         games = {}
@@ -109,12 +108,15 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
 async def update_nickname(message: Message, state: FSMContext):
     if message.text:
         await repository.update_nickname(user_id=message.from_user.id, nickname=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
 
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+        else:
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -130,11 +132,13 @@ async def update_telegram_tag(message: Message, state: FSMContext):
             telegram_tag = message.text
         
         await repository.update_telegram_tag(user_id=message.from_user.id, telegram_tag=telegram_tag)
-        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+        else:
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -151,11 +155,13 @@ async def update_gender(message: Message, state: FSMContext):
             return
         
         await repository.update_gender(user_id=message.from_user.id, gender=gender)
-        await message.answer(TEXT_SUCCESS_EDIT)
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+        else:
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -164,9 +170,13 @@ async def update_gender(message: Message, state: FSMContext):
 async def update_about(message: Message, state: FSMContext):
     if message.text:
         await repository.update_about(user_id=message.from_user.id, about=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
-        await message.answer("Вернуться к проверке анкеты?", 
-                    reply_markup=await get_back_to_check_kb())
+        data = await state.get_data()
+        if "process" in data and data["process"] == "creating_profile":
+            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer("Вернуться к проверке анкеты?", 
+                        reply_markup=await get_back_to_check_kb())
+        else:
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -175,11 +185,13 @@ async def update_about(message: Message, state: FSMContext):
 async def update_goal(message: Message, state: FSMContext):
     if message.text:
         await repository.update_goal(user_id=message.from_user.id, goal=message.text)
-        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+        else:
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -205,11 +217,13 @@ async def update_photo(message: Message, state: FSMContext):
         return
     
     await repository.update_photo(user_id=message.from_user.id, photo=photo)
-    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     data = await state.get_data()
     if "process" in data and data["process"] == "creating_profile":
+        await message.answer(TEXT_SUCCESS_EDIT)
         await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+    else:
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
 
 
 @router.callback_query(EditProfileForm.games)
@@ -282,11 +296,13 @@ async def add_new_game(message: Message, state: FSMContext):
             games = data["games"]
             await repository.update_games(user_id=message.from_user.id, games=games)
 
-            await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
             data = await state.get_data()
             if "process" in data and data["process"] == "creating_profile":
+                await message.answer(TEXT_SUCCESS_EDIT)
                 await message.answer("Вернуться к проверке анкеты?", 
-                        reply_markup=await get_back_to_check_kb())
+                            reply_markup=await get_back_to_check_kb())
+            else:
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
         else:
             await message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(EditProfileForm.add_new_game)

@@ -29,7 +29,7 @@ PROFILE_SAMPLE = """
 PHOTO_SAMPLE = "<b>Аватарка</b>: Нет"
 
 CLAN_SAMPLE = """
-<b>Название:</b> {name}
+<b>Название:</b>  {name}
 <b>Игра:</b> {game}
 <b>Описание клана:</b> {description}
 <b>Требования:</b> {demands}

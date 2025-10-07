@@ -39,6 +39,8 @@ async def ask_connect(bot: Bot, user_id: int, teammate: str, teammate_id: int, s
 async def handle_connect_answer(callback: CallbackQuery, state: FSMContext):
     answer = callback.data
 
+    await callback.message.delete()
+
     await callback.answer()
     
     # Сохраняем имя тиммейта в состоянии (предполагается, что оно передается откуда-то)
@@ -72,6 +74,7 @@ async def handle_connect_answer(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "estimate_callback")
 async def handle_success_after_process(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     data = await state.get_data()
     teammate = data.get('teammate', 'тиммейт')
     
@@ -135,10 +138,13 @@ async def handle_teamwork_rating(callback: CallbackQuery, state: FSMContext):
         f"Вежливость: {politeness_rating}⭐\nСкилл: {skill_rating}⭐\nКомандная игра: {rating}⭐"  # Исправлена опечатка
     )
     
+    
     await repository.add_teammate_id(user_id=teammate_id, teammate_id=callback.from_user.id)
     await repository.update_polite(user_id=teammate_id, score=politeness_rating)
     await repository.update_skill(user_id=teammate_id, score=skill_rating)
     await repository.update_team_game(user_id=teammate_id, score=rating)
+
+    await callback.message.answer("Оценка сохранена!")
     
     if profile := await repository.get_profile(user_id=callback.from_user.id):
         new_xp = profile.experience + 10
