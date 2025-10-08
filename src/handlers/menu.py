@@ -27,7 +27,3 @@ async def cmd_menu_callback(callback: CallbackQuery):
     await callback.message.answer(text=TEXT_INTRO, reply_markup=(await get_menu_keyboard()).as_markup())
     await callback.answer()
 
-@router.message(Command("remove_kb"))
-async def remove_kb(message: Message):
-    await message.answer(text="Клавиатура удалена.", reply_markup=ReplyKeyboardRemove())
-

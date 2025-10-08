@@ -165,7 +165,7 @@ async def update_gender(message: Message, state: FSMContext):
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data(gender=gender)
-            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
@@ -181,7 +181,7 @@ async def update_about(message: Message, state: FSMContext):
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data(about=message.text)
-            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
@@ -197,7 +197,7 @@ async def update_goal(message: Message, state: FSMContext):
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data(goal=message.text)
-            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
@@ -230,7 +230,7 @@ async def update_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     if "process" in data and data["process"] == "creating_profile":
         await state.update_data(photo=photo)
-        await message.answer(TEXT_SUCCESS_EDIT)
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
         await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
     else:
@@ -310,7 +310,7 @@ async def add_new_game(message: Message, state: FSMContext):
             data = await state.get_data()
             if "process" in data and data["process"] == "creating_profile":
                 await state.update_data(games=games)
-                await message.answer(TEXT_SUCCESS_EDIT)
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
                 await message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())
             else:

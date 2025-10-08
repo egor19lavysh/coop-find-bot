@@ -330,7 +330,7 @@ async def check_profile(message: Message, state: FSMContext):
     await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=False))
     await state.set_state(ProfileForm.check_profile)
 
-# Удаляем старый хендлер и добавляем новый callback-хендлер
+
 @router.callback_query(ProfileForm.check_profile, F.data.in_(["profile_correct", "profile_incorrect", "back_from_check"]))
 async def commit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()

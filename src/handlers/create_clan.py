@@ -152,10 +152,12 @@ async def check_profile(message: Message, state: FSMContext):
 
 @router.callback_query(ClanForm.check)
 async def commit_profile(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
     if callback.data:
         if callback.data == "clan_correct":
             await callback.message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
-            await save_clan(callback, state, user_id=callback.from_user.id)
+            await save_clan(callback.message, state, user_id=callback.from_user.id)
         elif callback.data == "clan_incorrect":
             await callback.message.answer(text=TEXT_REPEAT_PROFILE)
             await state.clear()
@@ -169,7 +171,9 @@ async def commit_profile(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.check.check_profile)
 
-async def save_clan(callback: CallbackQuery, state: FSMContext, user_id: int):
+
+
+async def save_clan(message: Message, state: FSMContext, user_id: int):
     data = await state.get_data()
 
     name = data["name"]
@@ -188,4 +192,4 @@ async def save_clan(callback: CallbackQuery, state: FSMContext, user_id: int):
     )
 
     await state.clear()
-    await cmd_menu(callback.message)
+    await cmd_menu(message)
