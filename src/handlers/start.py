@@ -38,4 +38,3 @@ async def check_user_subscription(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_SUB_FAIL)
         await callback.answer()
 
-

@@ -55,8 +55,13 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 async def start_edit_profile_message(message: Message, state: FSMContext):
+    data = await state.get_data()
 
-    await state.update_data(
+
+    if "process" in data and data["process"] == "creating_profile":
+        pass
+    else:
+        await state.update_data(
         games = {}
     )
     
@@ -111,6 +116,7 @@ async def update_nickname(message: Message, state: FSMContext):
 
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await state.update_data(nickname=message.text)
             await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -132,8 +138,9 @@ async def update_telegram_tag(message: Message, state: FSMContext):
             telegram_tag = message.text
         
         await repository.update_telegram_tag(user_id=message.from_user.id, telegram_tag=telegram_tag)
-        data = await state.get_data()
+        data = await state.get_data(telegram_tag=telegram_tag)
         if "process" in data and data["process"] == "creating_profile":
+            await state.update_data()
             await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -157,6 +164,7 @@ async def update_gender(message: Message, state: FSMContext):
         await repository.update_gender(user_id=message.from_user.id, gender=gender)
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await state.update_data(gender=gender)
             await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -172,6 +180,7 @@ async def update_about(message: Message, state: FSMContext):
         await repository.update_about(user_id=message.from_user.id, about=message.text)
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await state.update_data(about=message.text)
             await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -187,6 +196,7 @@ async def update_goal(message: Message, state: FSMContext):
         await repository.update_goal(user_id=message.from_user.id, goal=message.text)
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
+            await state.update_data(goal=message.text)
             await message.answer(TEXT_SUCCESS_EDIT)
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -219,6 +229,7 @@ async def update_photo(message: Message, state: FSMContext):
     await repository.update_photo(user_id=message.from_user.id, photo=photo)
     data = await state.get_data()
     if "process" in data and data["process"] == "creating_profile":
+        await state.update_data(photo=photo)
         await message.answer(TEXT_SUCCESS_EDIT)
         await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
@@ -298,6 +309,7 @@ async def add_new_game(message: Message, state: FSMContext):
 
             data = await state.get_data()
             if "process" in data and data["process"] == "creating_profile":
+                await state.update_data(games=games)
                 await message.answer(TEXT_SUCCESS_EDIT)
                 await message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())

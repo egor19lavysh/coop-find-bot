@@ -258,7 +258,7 @@ async def save_goal(message: Message, state: FSMContext):
 @router.message(ProfileForm.photo)
 async def save_photo(message: Message, state: FSMContext):
     if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_GOAL, reply_markup=await get_skip_keyboard(with_back=True))
+        await message.answer(text=TEXT_GOAL, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.goal)
         return
     
@@ -288,7 +288,6 @@ async def save_photo(message: Message, state: FSMContext):
         await state.set_state(ProfileForm.photo)
         return
 
-    await save_profile(message=message, state=state)
     await check_profile(message=message, state=state)
 
 async def check_profile(message: Message, state: FSMContext):
@@ -328,7 +327,7 @@ async def check_profile(message: Message, state: FSMContext):
                 text=profile + PHOTO_SAMPLE
             )
         
-    await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=True))
+    await message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=False))
     await state.set_state(ProfileForm.check_profile)
 
 # Удаляем старый хендлер и добавляем новый callback-хендлер
@@ -341,6 +340,9 @@ async def commit_profile(callback: CallbackQuery, state: FSMContext):
         await state.set_state(ProfileForm.photo)
         await callback.answer()
         return
+    
+    if not await repository.get_profile(user_id=callback.from_user.id):
+        await save_profile(callback=callback, state=state)
     
     if callback.data == "profile_correct":
         await callback.message.answer(text=TEXT_SUCCESS, reply_markup=ReplyKeyboardRemove())
@@ -387,11 +389,11 @@ async def save_status(callback: CallbackQuery, state: FSMContext):
     await cmd_menu(callback.message)
 
 
-async def save_profile(message: Message, state: FSMContext):
+async def save_profile(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
     await repository.create_profile(
-        user_id = message.from_user.id,
+        user_id = data["user_id"] if "user_id" in data else callback.from_user.id,
         nickname = data["nickname"],
         games = data["games"],
         about = data["about"],
