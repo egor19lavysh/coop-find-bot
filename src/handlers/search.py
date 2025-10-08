@@ -212,6 +212,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
     teammate_id = int(callback_parts[-1])
     game = callback_parts[-2]
     profile = await repository.get_profile(user_id=teammate_id)
+    user_profile = await repository.get_profile(user_id=callback.from_user.id)
 
     if not profile:
         await callback.answer("Профиль не найден")
@@ -224,9 +225,11 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
     await state.update_data(game=game, search_type="profiles")
     
     try:
+        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
         await callback.bot.send_message(
                 chat_id=teammate_id,
-                text=TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix
+                text=TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix,
+                reply_markup=keyboard
             )
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 

@@ -82,16 +82,6 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     
     return builder.as_markup()
 
-# async def get_back_kb() -> InlineKeyboardMarkup:
-#     builder = InlineKeyboardBuilder()
-#     builder.add(
-#         InlineKeyboardButton(
-#             text="Назад",
-#             callback_data="back_to_profiles"
-#         )
-#     )
-#     return builder.as_markup()
-
 
 async def get_search_type_kb() -> InlineKeyboardMarkup:
     buttons = [
@@ -235,4 +225,9 @@ async def get_game_inline_kb() -> InlineKeyboardMarkup:
 async def get_back_to_games_kb(search_type: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data=f"search_type_{search_type}")]]
+    )
+
+async def get_invite_profile_kb(user_id) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="Его профиль", callback_data=f"read_profile_invite_{user_id}")]]
     )

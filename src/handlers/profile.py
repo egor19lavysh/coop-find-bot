@@ -71,7 +71,12 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         else:
             user_rank = ""
 
-        keyboard = await get_interaction_kb(user_id=user_id, game=game) if type_user == "other" else await get_back_to_menu()
+        if type_user == "other":
+            keyboard = await get_interaction_kb(user_id=user_id, game=game)
+        elif type_user == "invite":
+            keyboard = await get_back_to_main_menu()
+        else:
+            await get_back_to_menu()
         prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
         profile_text = prefix + FULL_PROFILE_SAMPLE.format(
