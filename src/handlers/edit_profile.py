@@ -7,7 +7,9 @@ from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from utils.decorators import require_profile
-from handlers.profile_states import *
+from states.edit_profile import *
+from states.create_profile import *
+
 
 
 router = Router()

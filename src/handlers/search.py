@@ -2,25 +2,17 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from utils.constants import *
 from utils.schedule_estimate import schedule_estimate
 from keyboards.search_kb import *
 from repositories.profile_repository import profile_repository as repository
 from repositories.clan_repository import clan_repository
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from handlers.estimate import ask_connect
 from datetime import datetime, timedelta
 from utils.level_up import level_up
+from states.search import *
 
 router = Router()
-
-class SendMessageForm(StatesGroup):
-    message = State()
-
-class GameForm(StatesGroup):
-    search_type = State()
-    game = State()
 
 ### НОВЫЕ ТЕКСТЫ
 TEXT_CHOOSE_SEARCH_TYPE = """Выбери, кого хочешь найти:
@@ -234,7 +226,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
-            dt = datetime.now() + timedelta(seconds=5)
+            dt = datetime.now() + timedelta(hours=24)
             await schedule_estimate(
                 apscheduler=apscheduler,
                 time=dt,
@@ -295,7 +287,7 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("join_clan_"))
 async def join_clan(callback: CallbackQuery, state: FSMContext):
-    #await callback.message.delete()
+    await callback.message.delete()
 
     clan_id = int(callback.data.split("_")[-1])
     data = await state.get_data()
@@ -324,12 +316,15 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     if callback.from_user.username:
         join_message += f"📞 Телеграм: @{callback.from_user.username}"
     
+    join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
     try:
+        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
         await callback.bot.send_message(
             chat_id=clan.user_id,
-            text=join_message
+            text=join_message,
+            reply_markup=keyboard
         )
-        await callback.message.answer(TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(earch_type="clans"))
+        await callback.message.answer(TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
 
         new_xp = user_profile.experience + 30
         if user_profile.experience // 100 < new_xp // 100:

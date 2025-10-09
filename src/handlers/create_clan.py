@@ -2,24 +2,16 @@ from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
 from keyboards.clan_kb import get_commit_clan_kb
 from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from handlers.menu import cmd_menu
+from states.create_clan import *
 
 
 router = Router()
 
-
-class ClanForm(StatesGroup):
-    name = State()
-    game = State()
-    description = State()
-    demands = State()
-    photo = State()
-    check = State()
 
 ### ТЕКСТЫ
 TEXT_INTRO = "Чтобы разместить анкету клана ответь пожалуйста на пару вопросов ниже:"

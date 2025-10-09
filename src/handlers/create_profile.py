@@ -2,13 +2,13 @@ from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from states.create_profile import *
 from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from handlers.menu import cmd_menu
 from handlers.edit_profile import start_edit_profile_message
-from handlers.profile_states import *
+
 
 
 router = Router()

@@ -7,7 +7,7 @@ from models.profile import Profile
 from utils.constants import *
 
 
-async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, per_page: int = 2) -> InlineKeyboardMarkup:
+async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, per_page: int = 18) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
     start_idx = page * per_page
@@ -20,7 +20,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
             rating = round(sa, 1)
         else:
             rating = None
-        print(rating)
+        
         rating_text = f" {rating}⭐" if rating is not None else ""
         
         builder.add(
@@ -37,7 +37,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
             sizes.append(2)
 
     if profiles_count % 2 != 0:
-        sizes.append(1)
+        sizes.append(profiles_count % 2)
     
     builder.adjust(*sizes)
 
@@ -103,7 +103,7 @@ async def get_search_type_kb() -> InlineKeyboardMarkup:
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-async def get_clans_kb(clans, page=0, per_page=2):
+async def get_clans_kb(clans, page=0, per_page=18):
     """Клавиатура для отображения списка кланов"""
     builder = InlineKeyboardBuilder()
     
@@ -114,12 +114,11 @@ async def get_clans_kb(clans, page=0, per_page=2):
     for clan in clans_page:
         builder.add(InlineKeyboardButton(
             text=f"{clan.name}",
-            callback_data=f"view_clan_{clan.id}"
+            callback_data=f"view_clan_{clan.id}" 
         ))
 
     builder.adjust(2)
     
-    # Навигация
     navigation_buttons = []
     
     if page > 0:
@@ -173,7 +172,7 @@ async def get_clan_detail_kb(clan_id: int, game: str) -> InlineKeyboardMarkup:
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# keyboards/search_kb.py
+
 async def get_back_kb(search_type: str = "profiles") -> InlineKeyboardMarkup:
     callback_data = "back_to_profiles" if search_type == "profiles" else "back_to_clans"
     
