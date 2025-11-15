@@ -29,6 +29,7 @@ TEXT_SKIP = '\n\n<i>Если не хочешь заполнять эту инф�
 TEXT_ANSWER_TYPE_ERROR = "Ответь текстом."
 TEXT_WRONG_ANSWER = "Выберите ответ из предложенного списка!"
 TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля или выберите доступный вариант ответа ("Фото с профиля" или "Пропустить")'
+TEXT_PHOTO_COUNT_ERROR = "Пришлите 1 фотографию"
 TEXT_REPEAT_PROFILE = "Заполни заново свою анкету"
 TEXT_ACCEPTED = "\n\nПодтвеждено ✅"
 TEXT_REJECTED = "\n\nОтклонено ❌"
@@ -257,11 +258,13 @@ async def save_goal(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.photo)
 async def save_photo(message: Message, state: FSMContext):
+    data = await state.get_data()
     if message.text == TEXT_BACK:
         await message.answer(text=TEXT_GOAL, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.goal)
         return
     
+    # Проверяем, что это текст, а не несколько фото
     if message.text:
         if message.text == "Фото с профиля":
             photos = await message.bot.get_user_profile_photos(message.from_user.id)
@@ -278,15 +281,30 @@ async def save_photo(message: Message, state: FSMContext):
             await state.update_data(photo=None)
         else:
             await message.answer(TEXT_PHOTO_ERROR, reply_markup=await get_photo_kb(with_back=True))
-            await state.set_state(ProfileForm.photo)
-            return
+            return  # убрал повторную установку состояния
 
+    # Обработка фото - проверяем количество
     elif message.photo:
-        await state.update_data(photo=message.photo[-1].file_id)
+        # Проверяем, является ли это частью альбома
+        if message.media_group_id:
+            if data.get("msg_group_id", "") != message.media_group_id:
+                await message.answer(TEXT_PHOTO_COUNT_ERROR, reply_markup=await get_photo_kb(with_back=True))
+                await state.update_data(
+                    msg_group_id=message.media_group_id
+                )
+                return
+            else:
+                return
+
+        # Берём самую большую версию фото
+        file_id = message.photo[-1].file_id
+        await state.update_data(photo=file_id)
+            
+    
+    # Если пришел неподдерживаемый тип контента
     else:
         await message.answer(TEXT_PHOTO_ERROR, reply_markup=await get_photo_kb(with_back=True))
-        await state.set_state(ProfileForm.photo)
-        return
+        return  # убрал повторную установку состояния
 
     await check_profile(message=message, state=state)
 
