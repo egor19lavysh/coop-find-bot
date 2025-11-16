@@ -6,7 +6,7 @@ from aiogram.fsm.state import State, StatesGroup
 from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
-from handlers.create_profile import start_profile
+from .create_profile import start_profile
 
 
 router = Router()

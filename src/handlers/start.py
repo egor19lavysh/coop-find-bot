@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters.command import Command
 from keyboards.start_kb import get_start_keyboard
 from utils.check_subscription import check_subscription
-from handlers.create_profile import start_profile
+from handlers.profile.create_profile import start_profile
 from aiogram.fsm.context import FSMContext
 from config import settings
 

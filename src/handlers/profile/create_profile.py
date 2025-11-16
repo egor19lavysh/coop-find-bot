@@ -7,7 +7,7 @@ from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from handlers.menu import cmd_menu
-from handlers.edit_profile import start_edit_profile_message
+from .edit_profile import start_edit_profile_message
 
 
 

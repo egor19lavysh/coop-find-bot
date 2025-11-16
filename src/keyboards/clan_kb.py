@@ -7,9 +7,8 @@ from models.clan import Clan
 async def get_update_clan_kb(clan_id: int) -> InlineKeyboardBuilder:
     buttons = [
         InlineKeyboardButton(text="Показать профиль клана", callback_data=f"read_clan_self_{clan_id}"),
-        InlineKeyboardButton(text="Заполнить анкету клану заново 📝", callback_data=f"recreate_clan_{clan_id}"),
+        InlineKeyboardButton(text="Изменить анкету клана📝", callback_data=f"edit_clan_{clan_id}"),
         InlineKeyboardButton(text="Удалить клан❌", callback_data=f"delete_clan_{clan_id}"),
-        InlineKeyboardButton(text="Изменить фото 🖼️", callback_data=f"update_clan_photo_{clan_id}"),
         InlineKeyboardButton(text="Назад", callback_data="get_all_user_clans"),
     ]
 
@@ -90,3 +89,41 @@ async def get_back_to_clans() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="get_all_user_clans")]]
     )
+
+async def get_edit_clan_fields_kb(clan_id: int):
+    keyboard = [
+        [
+            InlineKeyboardButton(text="Название", callback_data="new_clan_name"),
+        ],
+        [
+            InlineKeyboardButton(text="Игра", callback_data="new_clan_game"),
+        ],
+        [
+            InlineKeyboardButton(text="Описание клана", callback_data="new_clan_desc"),
+        ],
+        [  
+            InlineKeyboardButton(text="Требования", callback_data="new_clan_demands"),
+        ],
+        [
+            InlineKeyboardButton(text="Фото", callback_data="new_clan_photo"),
+        ],
+        [
+            InlineKeyboardButton(text="Отмена", callback_data=f"detail_clan_{clan_id}"),
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+async def get_game_kb(with_back: bool = True, n: int = 2) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    for game in GAME_LIST:
+        builder.add(
+            InlineKeyboardButton(text=game,
+                                 callback_data=f"save_clan_game_{game}")
+        )
+    
+    
+    builder.adjust(n)
+    keyboard = builder.as_markup()
+    return keyboard

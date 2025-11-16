@@ -1,4 +1,3 @@
-# handlers/edit_profile.py
 from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
@@ -327,7 +326,7 @@ async def add_new_game(message: Message, state: FSMContext):
 @router.callback_query(F.data == "back_to_profile_check")
 async def back_to_profile_check(callback: CallbackQuery, state: FSMContext):
     """Возврат к проверке анкеты после редактирования"""
-    from handlers.create_profile import check_profile
+    from .create_profile import check_profile
     
     await state.set_state(ProfileForm.check_profile)
     await check_profile(callback.message, state)

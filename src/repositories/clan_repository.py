@@ -57,4 +57,41 @@ class ClanRepository:
                 await session.delete(clan)
                 await session.commit()
 
+    async def update_name(self, clan_id: int, name: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Clan)
+                .where(Clan.id == clan_id)
+                .values(name=name)
+            )
+            await session.commit()
+
+
+    async def update_game(self, clan_id: int, game: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Clan)
+                .where(Clan.id == clan_id)
+                .values(game=game)
+            )
+            await session.commit()
+
+    async def update_description(self, clan_id: int, desc: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Clan)
+                .where(Clan.id == clan_id)
+                .values(description=desc)
+            )
+            await session.commit()
+
+    async def update_demands(self, clan_id: int, demands: str) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Clan)
+                .where(Clan.id == clan_id)
+                .values(demands=demands)
+            )
+            await session.commit()
+
 clan_repository = ClanRepository(session_factory=AsyncSessionFactory)
