@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
-from sqlalchemy import ARRAY, Integer, Date
-from datetime import date
+from sqlalchemy import ARRAY, Integer, DateTime, func
+from datetime import datetime
 
 class Clan(Base):
     __tablename__ = "ggstore_clans"
@@ -13,3 +13,4 @@ class Clan(Base):
     description: Mapped[str]
     demands: Mapped[str]
     photo: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=True)

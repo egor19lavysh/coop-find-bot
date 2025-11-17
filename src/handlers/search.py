@@ -174,7 +174,8 @@ async def send_message_to_user(message: Message, state: FSMContext):
         try:
             await message.bot.send_message(
                 chat_id=user_id,
-                text=TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix
+                text=TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix,
+                reply_markup=await get_to_dialog_with_user_kb(username=message.from_user.username) if message.from_user.username else None
             )
             await message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
@@ -271,11 +272,20 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
     if not clan:
         await callback.answer("Клан не найден")
         return
+
     
-    clan_info = f"<b>Название клана</b>:{clan.name}\n"
-    clan_info += f"<b>Игра</b>: {clan.game}\n"
-    clan_info += f"<b>Описание</b>: {clan.description}\n"
-    clan_info += f"<b>Требования</b>: {clan.demands}\n"
+    clan_info = f"<b>Название клана</b>: {clan.name}\n\n"
+    clan_info += f"<b>Игра</b>: {clan.game}\n\n"
+    clan_info += f"<b>Описание</b>: {clan.description}\n\n"
+    clan_info += f"<b>Требования</b>: {clan.demands}\n\n"
+
+    if user := await callback.bot.get_chat(clan.user_id):
+        if user.username:
+            clan_info += f"<b>Тег лидера клана</b>: @{user.username}\n\n"
+
+    if clan.created_at:
+        clan_info += f"<b>Дата размещения</b>: {clan.created_at}"
+    
     
     await callback.answer()
     
@@ -318,7 +328,7 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     
     join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
     try:
-        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
+        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id, username=callback.from_user.username) if user_profile else None
         await callback.bot.send_message(
             chat_id=clan.user_id,
             text=join_message,

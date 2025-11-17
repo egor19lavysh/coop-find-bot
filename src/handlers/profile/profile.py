@@ -74,7 +74,8 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         if type_user == "other":
             keyboard = await get_interaction_kb(user_id=user_id, game=game)
         elif type_user == "invite":
-            keyboard = await get_back_to_main_menu()
+            user = await callback.bot.get_chat(user_id)
+            keyboard = await get_back_to_main_menu_from_invite(user.username)
         else:
             keyboard = await get_back_to_menu()
             
