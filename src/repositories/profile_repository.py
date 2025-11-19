@@ -16,7 +16,7 @@ class ProfileRepository:
                        nickname: str,
                        games: dict[str, str],
                        about: str,
-                       goal: str,
+                       goals: list[str],
                        is_active: bool,
                        telegram_tag: str = None,
                        gender: str = None,
@@ -30,7 +30,7 @@ class ProfileRepository:
                         telegram_tag=telegram_tag,
                         gender=gender,
                         about=about,
-                        goal=goal,
+                        goals=goals,
                         photo=photo,
                         is_active=is_active,
                         last_activity_day=date.today()
@@ -46,6 +46,12 @@ class ProfileRepository:
                 ))
             await session.commit()
 
+    async def get_profiles(self) -> list[Profile]:
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(Profile)
+            )
+            return result.scalars().all()
     async def get_profile(self, user_id: int) -> Profile | None:
         async with self.session_factory() as session:
             result = await session.execute(
@@ -234,12 +240,12 @@ class ProfileRepository:
             )
             await session.commit()
 
-    async def update_goal(self, user_id: int, goal: str) -> None:
+    async def update_goal(self, user_id: int, goals: list[str]) -> None:
         async with self.session_factory() as session:
             await session.execute(
                 update(Profile)
                 .where(Profile.user_id == user_id)
-                .values(goal=goal)
+                .values(goals=goals)
             )
             await session.commit()
 

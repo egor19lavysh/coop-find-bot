@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils.constants import GAME_LIST, FIELDS_LIST
+from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST
 
 TEXT_BACK = "Назад"
 
@@ -179,7 +179,7 @@ async def get_edit_fields_kb():
             InlineKeyboardButton(text="О себе", callback_data="edit_about"),
         ],
         [
-            InlineKeyboardButton(text="Цель", callback_data="edit_goal"),
+            InlineKeyboardButton(text="Цели", callback_data="edit_goal"),
         ],
         [
            InlineKeyboardButton(text="Фото", callback_data="edit_photo")
@@ -210,3 +210,9 @@ async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMark
                                                     url=f"https://t.me/{username}"
                                                 )]              
                                                   ])
+
+async def get_goals_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
+    btns = [[KeyboardButton(text=goal)] for goal in GOALS_LIST]
+    if with_back:
+        btns.append([KeyboardButton(text=TEXT_BACK)])
+    return ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)

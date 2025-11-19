@@ -284,7 +284,8 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
             clan_info += f"<b>Тег лидера клана</b>: @{user.username}\n\n"
 
     if clan.created_at:
-        clan_info += f"<b>Дата размещения</b>: {clan.created_at}"
+        time = clan.created_at.strftime('%d.%m.%Y %H:%M')
+        clan_info += f"<b>Дата размещения</b>: {time}"
     
     
     await callback.answer()

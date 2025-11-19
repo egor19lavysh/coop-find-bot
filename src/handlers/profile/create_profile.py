@@ -61,6 +61,7 @@ async def start_profile(bot: Bot, state: FSMContext):
         await state.update_data(
             games={},
             game=None,
+            goals=[],
             process="creating_profile"
         )
         await state.set_state(ProfileForm.nickname)
@@ -235,7 +236,7 @@ async def save_about(message: Message, state: FSMContext):
     
     if message.text:
         await state.update_data(about=message.text)
-        await message.answer(text=TEXT_GOAL, reply_markup=await get_back_kb())
+        await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
         await state.set_state(ProfileForm.goal)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
@@ -243,24 +244,67 @@ async def save_about(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.goal)
 async def save_goal(message: Message, state: FSMContext):
+    data = await state.get_data()
+    goals = data["goals"]
+
     if message.text == TEXT_BACK:
         await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
+        await state.update_data(goals=[])
         await state.set_state(ProfileForm.about)
         return
     
     if message.text:
-        await state.update_data(goal=message.text)
-        await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
-        await state.set_state(ProfileForm.photo)
+        if message.text in GOALS_LIST:
+            if message.text not in goals:
+                goals.append(message.text)
+                await state.update_data(goals=goals)
+                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_goal)
+            else:
+                await message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb(with_back=True))
+        else:
+            await message.answer(text="Выбери цель из списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
-        await state.set_state(ProfileForm.goal)
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb(with_back=True))
+
+@router.message(ProfileForm.add_new_goal)
+async def add_new_goal(message: Message, state: FSMContext):
+    if message.text == TEXT_BACK:
+        data = await state.get_data()
+        goals = data["goals"]
+        
+        if goals:
+            goals.pop()
+            await state.update_data(goals=goals)
+            
+            if goals:  # Если остались игры, возвращаемся к выбору добавления
+                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_game)
+            else:  # Если игр не осталось, возвращаемся к выбору первой игры
+                await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
+                await state.set_state(ProfileForm.goal)
+        return
+    
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
+            await state.set_state(ProfileForm.goal)
+        elif message.text == "Нет":
+            await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
+            await state.set_state(ProfileForm.photo)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
+            await state.set_state(ProfileForm.add_new_goal)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
+        await state.set_state(ProfileForm.add_new_goal)
+    
 
 @router.message(ProfileForm.photo)
 async def save_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_GOAL, reply_markup=await get_back_kb())
+        await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
         await state.set_state(ProfileForm.goal)
         return
     
@@ -316,7 +360,7 @@ async def check_profile(message: Message, state: FSMContext):
     gender = data["gender"] if data["gender"] else "Нет"
     games = data["games"]
     about = data["about"]
-    goal = data["goal"]
+    goals = data["goals"]
     photo = data["photo"]
 
     games_str = ", ".join(game for game in games)
@@ -327,7 +371,7 @@ async def check_profile(message: Message, state: FSMContext):
                     gender=gender,
                     game=games_str,
                     about=about,
-                    goal=goal
+                    goal=", ".join(goals)
                 )
 
     if photo:
@@ -415,7 +459,7 @@ async def save_profile(callback: CallbackQuery, state: FSMContext):
         nickname = data["nickname"],
         games = data["games"],
         about = data["about"],
-        goal = data["goal"],
+        goals = data["goals"],
         is_active = data.get("is_activate", True),
         telegram_tag = data["telegram_tag"],
         gender = data["gender"],

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
-from sqlalchemy import ARRAY, Integer, Date, ForeignKey, BigInteger
+from sqlalchemy import ARRAY, Integer, Date, ForeignKey, BigInteger, String
 from datetime import date
 
 class Profile(Base):
@@ -13,7 +13,8 @@ class Profile(Base):
     gender: Mapped[str] = mapped_column(nullable=True)
     games: Mapped[list["Game"]] = relationship("Game", back_populates="profile")
     about: Mapped[str]
-    goal: Mapped[str]
+    goal: Mapped[str] = mapped_column(nullable=True)
+    goals = mapped_column(ARRAY(String), default=[])
     photo: Mapped[str] = mapped_column(nullable=True)
     
     is_active: Mapped[bool] = mapped_column(default=False)

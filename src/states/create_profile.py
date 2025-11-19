@@ -11,6 +11,7 @@ class ProfileForm(StatesGroup):
     add_new_game = State()
     about = State()
     goal = State()
+    add_new_goal = State()
     photo = State()
     check_profile = State()
     is_active = State()

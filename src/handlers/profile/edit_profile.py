@@ -21,7 +21,7 @@ TEXT_EDIT_TAG = "Введи новый тег Telegram:"
 TEXT_EDIT_GENDER = "Выбери новый пол:"
 TEXT_EDIT_GAMES = "Выбери игры для редактирования:"
 TEXT_EDIT_ABOUT = "Введи новое описание о себе:"
-TEXT_EDIT_GOAL = "Введи новую цель поиска:"
+TEXT_EDIT_GOAL = "Выбери новую цель поиска:"
 TEXT_EDIT_PHOTO = "Отправь новое фото профиля:"
 TEXT_EDIT_STATUS = "Изменить статус анкеты:"
 TEXT_SUCCESS_EDIT = "Изменения успешно сохранены! ✅"
@@ -48,7 +48,8 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 
     await state.update_data(
-        games = {}
+        games = {},
+        goals = []
     )
     
     await callback.message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_fields_kb())
@@ -63,7 +64,8 @@ async def start_edit_profile_message(message: Message, state: FSMContext):
         pass
     else:
         await state.update_data(
-        games = {}
+        games = {},
+        goals = []
     )
     
     await message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_fields_kb())
@@ -100,7 +102,8 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
         await state.set_state(EditProfileForm.about)
     
     elif field == "goal":
-        await callback.message.answer(TEXT_EDIT_GOAL)
+        await callback.message.answer(TEXT_EDIT_GOAL, reply_markup=await get_goals_kb())
+        await state.update_data(goals=[])
         await state.set_state(EditProfileForm.goal)
     
     elif field == "photo":
@@ -193,18 +196,51 @@ async def update_about(message: Message, state: FSMContext):
 @router.message(EditProfileForm.goal)
 @require_profile
 async def update_goal(message: Message, state: FSMContext):
+    data = await state.get_data()
+    goals = data["goals"]
+
     if message.text:
-        await repository.update_goal(user_id=message.from_user.id, goal=message.text)
-        data = await state.get_data()
-        if "process" in data and data["process"] == "creating_profile":
-            await state.update_data(goal=message.text)
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-            await message.answer("Вернуться к проверке анкеты?", 
-                        reply_markup=await get_back_to_check_kb())
+        if message.text in GOALS_LIST:
+            if message.text not in goals:
+                goals.append(message.text)
+                await state.update_data(goals=goals)
+                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(False))
+                await state.set_state(EditProfileForm.add_new_goal)
+            else:
+                await message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb())
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            await message.answer(text="Выбери цель из списка.")
     else:
-        await message.answer(TEXT_ANSWER_TYPE_ERROR)
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb())
+
+@router.message(EditProfileForm.add_new_goal)
+@require_profile
+async def add_new_goal(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_EDIT_GOAL, reply_markup=await get_goals_kb())
+            await state.set_state(EditProfileForm.goal)
+        elif message.text == "Нет":
+            goals = data["goals"]
+            await repository.update_goal(user_id=message.from_user.id, goals=goals)
+
+            if "process" in data and data["process"] == "creating_profile":
+                await state.update_data(goals=goals)
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await message.answer("Вернуться к проверке анкеты?", 
+                            reply_markup=await get_back_to_check_kb())
+            else:
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
+            await state.set_state(EditProfileForm.add_new_goal)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb())
+        await state.set_state(EditProfileForm.add_new_goal)
+
+
 
 @router.message(EditProfileForm.photo)
 @require_profile
@@ -267,7 +303,6 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(EditProfileForm.games)
-    
     
 
 
