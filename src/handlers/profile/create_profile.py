@@ -37,6 +37,8 @@ TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы м�
 IS_PROFILE_OK = "Все верно?"
 TEXT_ADD_GAME = "Добавить еще игру?"
 TEXT_BACK = "Назад"
+TEXT_WARCRAFT_MODE = "Выбери режим из списка, в котором хочешь указать рейтинг:"
+TEXT_NUM_RANK = "Введи силу аккаунта числом:"
 
 # В хендлерах замените вызовы клавиатур на:
 
@@ -157,11 +159,125 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
             await state.set_state(ProfileForm.game)
             return
         
-        await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_skip_keyboard(with_back=True))
-        await state.set_state(ProfileForm.rank)
+        if game in GAMES_RANKS:
+            await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
+            await state.set_state(ProfileForm.rank)
+        elif game == "Warcraft":
+            await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True)) # Добавить логику
+            await state.set_state(ProfileForm.add_warcraft_mode)
+        else:
+            await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+            await state.set_state(ProfileForm.rank)
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
+
+@router.message(ProfileForm.add_warcraft_mode)
+async def save_mode(message: Message, state: FSMContext):
+    if message.text == TEXT_BACK:
+        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+        await state.set_state(ProfileForm.game)
+        return
+    
+    if message.text:
+        if message.text in WARCRAFT_MODES + ["Пропустить"]:
+            data = await state.get_data()
+            games = data["games"]
+            game = data["game"]
+
+            if message.text == "Пропустить":
+                rank = None
+                games[game] = rank
+
+                await state.update_data(
+                    games=games,
+                    game=None
+                )
+
+                await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_game)
+
+            else:
+                mode = message.text
+                await state.update_data(mode=mode)
+                is_pve = mode == "PvE"
+                print(is_pve)
+
+                await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
+                await state.set_state(ProfileForm.add_warcraft_rank)
+
+        else:
+            await message.answer("Выберите режим из предложенного списка.")
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+
+@router.callback_query(ProfileForm.add_warcraft_rank)
+async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    if callback.data == "back_from_warcraft_ranks":
+        await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
+        await state.set_state(ProfileForm.add_warcraft_mode)
+        return
+    
+    # Parse the callback data to get index and is_pve flag
+    parts = callback.data.split("/")
+    if len(parts) >= 3 and parts[0] == "add_warcraft_rank":
+        try:
+            rank_index = int(parts[1])
+            is_pve_str = parts[2]
+            is_pve = is_pve_str.lower() == 'true'
+            # Get the actual rank based on the stored state or recreate the list
+            ranks = WARCRAFT_PvE if is_pve else WARCRAFT
+            if 0 <= rank_index < len(ranks):
+                rank = ranks[rank_index]
+            else:
+                await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+                return
+        except (ValueError, IndexError):
+            await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+            return
+    else:
+        await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+        return
+    
+    data = await state.get_data()
+    games = data["games"]
+    game = data["game"]
+    mode = data["mode"]
+
+    if game in games:
+        new_rank = (games[game] + f"{mode}/{rank};")
+    else:
+        new_rank = f"{mode}/{rank};"
+
+    games[game] = new_rank
+
+    await state.update_data(
+            games=games,
+            game=game,
+            mode=None
+        )
+    
+    await callback.message.answer("Добавить еще один ранг в Warcraft?", reply_markup=await get_confirmation_kb(False))
+    await state.set_state(ProfileForm.add_new_warcraft_rank)
+
+@router.message(ProfileForm.add_new_warcraft_rank)
+async def add_new_warcraft_rank(message: Message, state: FSMContext):
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True)) # Добавить логику
+            await state.set_state(ProfileForm.add_warcraft_mode)
+        elif message.text == "Нет":
+            await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+            await state.set_state(ProfileForm.add_new_game)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
+            await state.set_state(ProfileForm.add_new_warcraft_rank)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
+        await state.set_state(ProfileForm.add_new_warcraft_rank)
+
 
 @router.message(ProfileForm.rank)
 async def save_rank(message: Message, state: FSMContext):
@@ -362,6 +478,8 @@ async def check_profile(message: Message, state: FSMContext):
     about = data["about"]
     goals = data["goals"]
     photo = data["photo"]
+
+    print(games)
 
     games_str = ", ".join(game for game in games)
 

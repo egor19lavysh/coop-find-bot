@@ -1,6 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST
+from utils.ranks import *
 
 TEXT_BACK = "Назад"
 
@@ -216,3 +217,51 @@ async def get_goals_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
     if with_back:
         btns.append([KeyboardButton(text=TEXT_BACK)])
     return ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)
+
+
+
+
+async def get_ranks_kb(game: str, with_back: bool = False) -> ReplyKeyboardMarkup:
+    keyboard = []
+    if game in GAMES_RANKS:
+        for rank in GAMES_RANKS[game]:
+            keyboard.append([KeyboardButton(text=rank)])
+    
+    keyboard.append([KeyboardButton(text="Пропустить")])
+
+    if with_back:
+        keyboard.append([KeyboardButton(text="Назад")])
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+        
+
+async def get_warcraft_modes_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
+    keyboard = []
+    for mode in WARCRAFT_MODES:
+        keyboard.append([KeyboardButton(text=mode)])
+    
+    keyboard.append([KeyboardButton(text="Пропустить")])
+
+    if with_back:
+        keyboard.append([KeyboardButton(text="Назад")])
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True)
+
+async def get_warcraft_ranks_kb(is_pve: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    ranks = WARCRAFT_PvE if is_pve else WARCRAFT
+    
+    # Create a mapping for callback data
+    for rank in ranks:
+        # Use index or a short identifier instead of the full name
+        rank_index = ranks.index(rank)
+        builder.add(
+            InlineKeyboardButton(text=rank, callback_data=f"add_warcraft_rank/{rank_index}/{is_pve}")
+        )
+
+    builder.adjust(3)
+
+    builder.add(
+        InlineKeyboardButton(text="Назад", callback_data="back_from_warcraft_ranks")
+    )
+
+    return builder.as_markup()
+
