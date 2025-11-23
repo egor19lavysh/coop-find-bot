@@ -245,23 +245,77 @@ async def get_warcraft_modes_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
         keyboard.append([KeyboardButton(text="Назад")])
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True)
 
-async def get_warcraft_ranks_kb(is_pve: bool = False) -> InlineKeyboardMarkup:
+# async def get_warcraft_ranks_kb(is_pve: bool = False) -> InlineKeyboardMarkup:
+#     builder = InlineKeyboardBuilder()
+#     ranks = WARCRAFT_PvE if is_pve else WARCRAFT
+    
+#     # Create a mapping for callback data
+#     for rank in ranks:
+#         # Use index or a short identifier instead of the full name
+#         rank_index = ranks.index(rank)
+#         builder.add(
+#             InlineKeyboardButton(text=rank, callback_data=f"add_warcraft_rank/{rank_index}/{is_pve}")
+#         )
+
+#     builder.adjust(3)
+
+#     builder.add(
+#         InlineKeyboardButton(text="Назад", callback_data="back_from_warcraft_ranks")
+#     )
+
+#     return builder.as_markup()
+
+async def get_warcraft_ranks_kb(is_pve: bool = False, page=0, per_page=18):
+    """Клавиатура для отображения списка кланов"""
     builder = InlineKeyboardBuilder()
     ranks = WARCRAFT_PvE if is_pve else WARCRAFT
     
-    # Create a mapping for callback data
-    for rank in ranks:
-        # Use index or a short identifier instead of the full name
+    start_idx = page * per_page
+    end_idx = start_idx + per_page
+    ranks_page = ranks[start_idx:end_idx]
+    
+    for rank in ranks_page:
         rank_index = ranks.index(rank)
         builder.add(
             InlineKeyboardButton(text=rank, callback_data=f"add_warcraft_rank/{rank_index}/{is_pve}")
         )
 
-    builder.adjust(3)
+    builder.adjust(2)
+    
+    navigation_buttons = []
+    
+    if page > 0:
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="◀️ Назад",
+                callback_data=f"ranks_page_nopve_{page - 1}" if not is_pve else f"ranks_page_pve_{page - 1}"
+            )
+        )
 
-    builder.add(
-        InlineKeyboardButton(text="Назад", callback_data="back_from_warcraft_ranks")
+    total_pages = (len(ranks) - 1) // per_page + 1 if ranks else 1
+    navigation_buttons.append(
+        InlineKeyboardButton(
+            text=f"{page + 1}/{total_pages}",
+            callback_data="current_page"
+        )
+    )
+    
+    if end_idx < len(ranks):
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="Вперед ▶️",
+                callback_data=f"ranks_page_nopve_{page + 1}" if not is_pve else f"ranks_page_pve_{page + 1}"
+            )
+        )
+    
+    if navigation_buttons:
+        builder.row(*navigation_buttons)
+    
+    builder.row(
+        InlineKeyboardButton(
+            text="Назад",
+            callback_data=f"back_from_warcraft_ranks"
+        )
     )
 
     return builder.as_markup()
-

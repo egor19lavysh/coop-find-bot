@@ -184,9 +184,10 @@ async def save_mode(message: Message, state: FSMContext):
             data = await state.get_data()
             games = data["games"]
             game = data["game"]
+            rank = games.get(game, "")
 
             if message.text == "Пропустить":
-                rank = None
+                rank += ""
                 games[game] = rank
 
                 await state.update_data(
@@ -201,7 +202,6 @@ async def save_mode(message: Message, state: FSMContext):
                 mode = message.text
                 await state.update_data(mode=mode)
                 is_pve = mode == "PvE"
-                print(is_pve)
 
                 await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
                 await state.set_state(ProfileForm.add_warcraft_rank)
@@ -219,6 +219,9 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
         await state.set_state(ProfileForm.add_warcraft_mode)
         return
+    elif callback.data.startswith("ranks_page_"):
+        await handle_ranks_pagination(callback, state)
+        return
     
     # Parse the callback data to get index and is_pve flag
     parts = callback.data.split("/")
@@ -231,11 +234,13 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
             ranks = WARCRAFT_PvE if is_pve else WARCRAFT
             if 0 <= rank_index < len(ranks):
                 rank = ranks[rank_index]
+                await callback.message.edit_text(f"Выбран рейтинг: {rank}", reply_markup=None)
             else:
                 await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
                 return
-        except (ValueError, IndexError):
+        except (ValueError, IndexError) as e:
             await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+            print(e)
             return
     else:
         await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
@@ -259,14 +264,28 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
             mode=None
         )
     
-    await callback.message.answer("Добавить еще один ранг в Warcraft?", reply_markup=await get_confirmation_kb(False))
-    await state.set_state(ProfileForm.add_new_warcraft_rank)
+    await callback.message.answer("Выбери режим из списка, в котором хочешь указать рейтинг:", reply_markup=await get_warcraft_modes_kb(True))
+    await state.set_state(ProfileForm.add_warcraft_mode)
+
+
+async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
+    page = int(callback.data.split("_")[-1])
+    mode = callback.data.split("_")[-2]
+    data = await state.get_data()
+    
+    await state.update_data(current_page=page)
+    keyboard = await get_warcraft_ranks_kb(is_pve=True, page=page) if mode == "pve" else await get_warcraft_ranks_kb(is_pve=False, page=page)
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    
+    await callback.answer()
 
 @router.message(ProfileForm.add_new_warcraft_rank)
 async def add_new_warcraft_rank(message: Message, state: FSMContext):
     if message.text:
         if message.text == "Да":
-            await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True)) # Добавить логику
+            await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
         elif message.text == "Нет":
             await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
@@ -479,7 +498,6 @@ async def check_profile(message: Message, state: FSMContext):
     goals = data["goals"]
     photo = data["photo"]
 
-    print(games)
 
     games_str = ", ".join(game for game in games)
 
@@ -578,7 +596,7 @@ async def save_profile(callback: CallbackQuery, state: FSMContext):
         games = data["games"],
         about = data["about"],
         goals = data["goals"],
-        is_active = data.get("is_activate", True),
+        is_active = data.get("is_activate", False),
         telegram_tag = data["telegram_tag"],
         gender = data["gender"],
         photo = data["photo"]
