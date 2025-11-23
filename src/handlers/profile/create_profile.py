@@ -65,7 +65,7 @@ async def start_profile(bot: Bot, state: FSMContext):
         await state.update_data(
             games={},
             game=None,
-            game_rank=None,
+            game_rank="",
             goals=[],
             process="creating_profile",
             time=[]
@@ -186,30 +186,32 @@ async def save_mode(message: Message, state: FSMContext):
     if message.text:
         if message.text in WARCRAFT_MODES + ["Пропустить"]:
             data = await state.get_data()
-            games = data["games"]
-            game = data["game"]
             rank = data["game_rank"]
 
-            if message.text == "Пропустить":
-                if rank:
-                    rank += ""
+            if message.text not in rank:
+
+                if message.text == "Пропустить":
+                    if rank:
+                        rank += ""
+                    else:
+                        rank = "" 
+
+                    await state.update_data(
+                        game_rank=rank
+                    )
+
+                    await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+                    await state.set_state(ProfileForm.gallery)
+
                 else:
-                    rank = "" 
+                    mode = message.text
+                    await state.update_data(mode=mode)
+                    is_pve = mode == "PvE"
 
-                await state.update_data(
-                    game_rank=rank
-                )
-
-                await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
-                await state.set_state(ProfileForm.gallery)
-
+                    await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
+                    await state.set_state(ProfileForm.add_warcraft_rank)
             else:
-                mode = message.text
-                await state.update_data(mode=mode)
-                is_pve = mode == "PvE"
-
-                await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
-                await state.set_state(ProfileForm.add_warcraft_rank)
+                await message.answer("Вы уже выбрали этот режим. Выберите другой.")
 
         else:
             await message.answer("Выберите режим из предложенного списка.")
@@ -257,17 +259,14 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
     game_rank = data["game_rank"]
     mode = data["mode"]
 
-    if game in games:
-        new_rank = (game_rank + f"{mode}/{rank};")
-    else:
-        new_rank = f"{mode}/{rank};"
+    new_rank = (game_rank + f"{mode}/{rank};")
 
 
     await state.update_data(
             games=games,
             game=game,
             mode=None,
-            game_rank=game_rank
+            game_rank=new_rank
         )
     
     await callback.message.answer("Выбери режим из списка, в котором хочешь указать рейтинг:", reply_markup=await get_warcraft_modes_kb(True))
@@ -311,11 +310,22 @@ async def save_rank(message: Message, state: FSMContext):
         await state.set_state(ProfileForm.game)
         return
     
+    data = await state.get_data()
+    game = data["game"]
+    
     if message.text:
         if message.text == "Пропустить":
             rank = None
         else:
             rank = message.text
+            if game in ["Raid Shadow Legends", "WoR"]:
+                try:
+                    float(rank)
+                except Exception:
+                    await message.answer("Введите численное значение!")
+                    return 
+
+            
 
         await state.update_data(
             game_rank=rank
