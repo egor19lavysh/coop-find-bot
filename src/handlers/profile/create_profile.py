@@ -435,7 +435,7 @@ async def save_time(message: Message, state: FSMContext):
         if message.text in CONVENIENT_TIME:
             if message.text not in time:
                 time.append(message.text)
-                await state.update_data(goals=time)
+                await state.update_data(time=time)
                 await message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(ProfileForm.add_new_time)
             else:
@@ -626,7 +626,7 @@ async def check_profile(message: Message, state: FSMContext):
                     game=games_str,
                     about=about,
                     time=time_str,
-                    goal=time_str
+                    goal=goals_str
                 )
 
     if photo:
