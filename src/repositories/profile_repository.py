@@ -14,13 +14,12 @@ class ProfileRepository:
     async def create_profile(self,
                        user_id: int,
                        nickname: str,
-                       games: dict[str, str],
+                       games: dict[str, dict[str, str]],
                        about: str,
                        goals: list[str],
                        is_active: bool,
                        telegram_tag: str = None,
                        gender: str = None,
-                       rank: str = None,
                        photo: str = None,
                        ) -> None:
         
@@ -38,10 +37,11 @@ class ProfileRepository:
         
         async with self.session_factory() as session:
             profile_id = (await session.execute(query)).scalar_one_or_none()
-            for name, rank in games.items():
+            for name, info in games.items():
                 await session.execute(insert(Game).values(
                     name=name,
-                    rank=rank,
+                    rank=info["rank"],
+                    gallery=info["gallery"],
                     profile_id=profile_id
                 ))
             await session.commit()

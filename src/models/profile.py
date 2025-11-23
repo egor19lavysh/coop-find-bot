@@ -15,6 +15,7 @@ class Profile(Base):
     about: Mapped[str]
     goal: Mapped[str] = mapped_column(nullable=True)
     goals = mapped_column(ARRAY(String), default=[])
+    convenient_time = mapped_column(ARRAY(String), default=[])
     photo: Mapped[str] = mapped_column(nullable=True)
     
     is_active: Mapped[bool] = mapped_column(default=False)
@@ -41,7 +42,7 @@ class Game(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     rank: Mapped[str] = mapped_column(nullable=True)
-    # gallery: Mapped[list[str]] = mapped_column(ARRAY(String), default=[])
+    gallery: Mapped[list[str]] = mapped_column(ARRAY(String), default=[], nullable=True)
 
     profile_id: Mapped[int] = mapped_column(ForeignKey("ggstore_profiles.id"))
     profile: Mapped["Profile"] = relationship("Profile", back_populates="games")

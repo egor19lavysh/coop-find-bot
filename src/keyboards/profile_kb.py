@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST
+from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENIENT_TIME
 from utils.ranks import *
 
 TEXT_BACK = "Назад"
@@ -319,3 +319,10 @@ async def get_warcraft_ranks_kb(is_pve: bool = False, page=0, per_page=18):
     )
 
     return builder.as_markup()
+
+
+async def get_time_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
+    kb = [[KeyboardButton(text=time)] for time in CONVENIENT_TIME]
+    if with_back:
+        kb.append([KeyboardButton(text="Назад")])
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)

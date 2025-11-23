@@ -39,6 +39,8 @@ TEXT_ADD_GAME = "Добавить еще игру?"
 TEXT_BACK = "Назад"
 TEXT_WARCRAFT_MODE = "Выбери режим из списка, в котором хочешь указать рейтинг:"
 TEXT_NUM_RANK = "Введи силу аккаунта числом:"
+TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
+TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
 
 # В хендлерах замените вызовы клавиатур на:
 
@@ -63,8 +65,10 @@ async def start_profile(bot: Bot, state: FSMContext):
         await state.update_data(
             games={},
             game=None,
+            game_rank=None,
             goals=[],
-            process="creating_profile"
+            process="creating_profile",
+            time=[]
         )
         await state.set_state(ProfileForm.nickname)
     else:
@@ -163,7 +167,7 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
             await state.set_state(ProfileForm.rank)
         elif game == "Warcraft":
-            await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True)) # Добавить логику
+            await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
         else:
             await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
@@ -184,19 +188,20 @@ async def save_mode(message: Message, state: FSMContext):
             data = await state.get_data()
             games = data["games"]
             game = data["game"]
-            rank = games.get(game, "")
+            rank = data["game_rank"]
 
             if message.text == "Пропустить":
-                rank += ""
-                games[game] = rank
+                if rank:
+                    rank += ""
+                else:
+                    rank = "" 
 
                 await state.update_data(
-                    games=games,
-                    game=None
+                    game_rank=rank
                 )
 
-                await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-                await state.set_state(ProfileForm.add_new_game)
+                await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+                await state.set_state(ProfileForm.gallery)
 
             else:
                 mode = message.text
@@ -249,19 +254,20 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     games = data["games"]
     game = data["game"]
+    game_rank = data["game_rank"]
     mode = data["mode"]
 
     if game in games:
-        new_rank = (games[game] + f"{mode}/{rank};")
+        new_rank = (game_rank + f"{mode}/{rank};")
     else:
         new_rank = f"{mode}/{rank};"
 
-    games[game] = new_rank
 
     await state.update_data(
             games=games,
             game=game,
-            mode=None
+            mode=None,
+            game_rank=game_rank
         )
     
     await callback.message.answer("Выбери режим из списка, в котором хочешь указать рейтинг:", reply_markup=await get_warcraft_modes_kb(True))
@@ -306,27 +312,80 @@ async def save_rank(message: Message, state: FSMContext):
         return
     
     if message.text:
-        data = await state.get_data()
-        games = data["games"]
-        game = data["game"]
-
         if message.text == "Пропустить":
             rank = None
         else:
             rank = message.text
 
-        games[game] = rank
-
         await state.update_data(
-            games=games,
-            game=None
+            game_rank=rank
         )
         
-        await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-        await state.set_state(ProfileForm.add_new_game)
+        await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await state.set_state(ProfileForm.gallery)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.rank)
+
+@router.message(ProfileForm.gallery)
+async def save_gallery(message: Message, state: FSMContext, album: list[Message] = None):
+    data = await state.get_data()
+    games = data["games"]
+    game = data["game"]
+    rank = data["game_rank"]
+    
+    if message.media_group_id and message.photo:
+
+        if len(album) <= 10:
+
+            games[game] = {
+                "rank": rank,
+                "gallery": [photo.photo[-1].file_id for photo in album]
+            }
+
+            await state.update_data(
+                games=games,
+                game=None,
+                game_rank=None
+            )
+        
+            await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+            await state.set_state(ProfileForm.add_new_game)
+        else:
+            await message.answer("Отправьте до 10 фотографий.")
+            return
+        
+    elif message.text:
+        if message.text == "Пропустить":
+
+            games[game] = {
+                "rank": rank,
+                "gallery": []
+            }
+
+            await state.update_data(
+                games=games,
+                game=None,
+                game_rank=None
+            )
+        
+            await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+            await state.set_state(ProfileForm.add_new_game)
+
+        elif message.text == "Назад":
+            if game in GAMES_RANKS:
+                await message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
+                await state.set_state(ProfileForm.rank)
+            elif game == "Warcraft":
+                await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
+                await state.set_state(ProfileForm.add_warcraft_mode)
+            else:
+                await message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+                await state.set_state(ProfileForm.rank)
+        else:
+            await message.answer("Пришлите фотографии или выберите ответ с клавиатуры!")
+
+        
 
 @router.message(ProfileForm.add_new_game)
 async def add_new_game(message: Message, state: FSMContext):
@@ -353,8 +412,8 @@ async def add_new_game(message: Message, state: FSMContext):
             await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
             await state.set_state(ProfileForm.game)
         elif message.text == "Нет":
-            await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
-            await state.set_state(ProfileForm.about)
+            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(True))
+            await state.set_state(ProfileForm.time)
         else:
             await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_game)
@@ -362,11 +421,67 @@ async def add_new_game(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
 
-@router.message(ProfileForm.about)
-async def save_about(message: Message, state: FSMContext):
+@router.message(ProfileForm.time)
+async def save_time(message: Message, state: FSMContext):
+    data = await state.get_data()
+    time = data["time"]
+
     if message.text == TEXT_BACK:
         await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
+        return
+    
+    if message.text:
+        if message.text in CONVENIENT_TIME:
+            if message.text not in time:
+                time.append(message.text)
+                await state.update_data(goals=time)
+                await message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_time)
+            else:
+                await message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb(with_back=True))
+        else:
+            await message.answer(text="Выбери промежуток времени из списка.")
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb(with_back=True))
+
+@router.message(ProfileForm.add_new_time)
+async def add_new_time(message: Message, state: FSMContext):
+    if message.text == TEXT_BACK:
+        data = await state.get_data()
+        time = data["time"]
+        
+        if time:
+            time.pop()
+            await state.update_data(time=time)
+            
+            if time:  # Если остались игры, возвращаемся к выбору добавления
+                await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_time)
+            else:  # Если игр не осталось, возвращаемся к выбору первой игры
+                await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
+                await state.set_state(ProfileForm.time)
+        return
+    
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
+            await state.set_state(ProfileForm.time)
+        elif message.text == "Нет":
+            await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
+            await state.set_state(ProfileForm.about)
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
+            await state.set_state(ProfileForm.add_new_time)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
+        await state.set_state(ProfileForm.add_new_time)
+
+@router.message(ProfileForm.about)
+async def save_about(message: Message, state: FSMContext):
+    if message.text == TEXT_BACK:
+        await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
+        await state.set_state(ProfileForm.add_new_time)
         return
     
     if message.text:
@@ -412,10 +527,10 @@ async def add_new_goal(message: Message, state: FSMContext):
             goals.pop()
             await state.update_data(goals=goals)
             
-            if goals:  # Если остались игры, возвращаемся к выбору добавления
+            if goals:
                 await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
-                await state.set_state(ProfileForm.add_new_game)
-            else:  # Если игр не осталось, возвращаемся к выбору первой игры
+                await state.set_state(ProfileForm.add_new_goal)
+            else:
                 await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
                 await state.set_state(ProfileForm.goal)
         return
@@ -497,9 +612,12 @@ async def check_profile(message: Message, state: FSMContext):
     about = data["about"]
     goals = data["goals"]
     photo = data["photo"]
+    time = data["time"]
 
 
-    games_str = ", ".join(game for game in games)
+    games_str = ", ".join(games)
+    time_str = ", ".join(time)
+    goals_str = ", ".join(goals)
 
     profile = PROFILE_SAMPLE.format(
                     nickname=nickname,
@@ -507,7 +625,8 @@ async def check_profile(message: Message, state: FSMContext):
                     gender=gender,
                     game=games_str,
                     about=about,
-                    goal=", ".join(goals)
+                    time=time_str,
+                    goal=time_str
                 )
 
     if photo:
