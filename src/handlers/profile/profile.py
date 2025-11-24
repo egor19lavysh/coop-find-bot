@@ -1,5 +1,5 @@
 from aiogram import Router, Bot, F
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InputMediaPhoto
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -64,7 +64,15 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         user_rank = None
         if type_user == "other":
             if games[game]:
-                user_rank = f"\n<b>Ранг:</b> {games[game]}"
+                if game != "Warcraft":
+                    user_rank = f"\n<b>Ранг:</b> {games[game]}"
+                else:
+                    user_rank = f"\n<b>Ранг:</b>\n"
+                    subranks = []
+                    for subrank in games[game].split(";")[:-1]:
+                        mode, info = subrank.split("/")
+                        subranks.append(f"- {mode}: {info}")
+                    user_rank += "\n".join(subranks)
             else:
                 user_rank = f"\n<b>Ранг:</b> Не указан"
 
@@ -114,6 +122,39 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_NO_PROFILE, reply_markup=await get_back_to_menu())
     
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("show_gallery_"))
+async def show_gallery(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    parts = callback.data.split("_")
+    user_id = parts[-2]
+    game = parts[-1]
+
+    nickname = (await repository.get_profile(user_id=int(user_id))).nickname
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+        text="Назад",
+        callback_data=f"read_profile_other_{user_id}"
+    )]])
+
+
+    if games := await repository.get_games_by_user_id(user_id=int(user_id)):
+        games = {game.name: game for game in games}
+        if game in games:
+            if games[game].gallery:
+                media = [InputMediaPhoto(media=file_id) for file_id in games[game].gallery]
+                await callback.bot.send_media_group(chat_id=callback.message.chat.id, media=media)
+                await callback.message.answer("Вернуться обратно?", reply_markup=kb)
+                return
+    await callback.message.answer(f"Упс, {nickname} не прикрепил фото игрового профиля", reply_markup=kb)
+    
+
+
+
+
 
 
 @router.callback_query(F.data == "delete_profile")

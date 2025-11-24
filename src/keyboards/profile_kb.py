@@ -144,6 +144,10 @@ async def get_profile_kb(user_id: int) -> InlineKeyboardBuilder:
 async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
+            text="Галерея",
+            callback_data=f"show_gallery_{user_id}_{game}"
+        )],
+        [InlineKeyboardButton(
             text="Написать сообщение",
             callback_data=f"send_message_to_user_{user_id}"
         )],
