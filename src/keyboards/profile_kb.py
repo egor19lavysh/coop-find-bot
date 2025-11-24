@@ -331,26 +331,38 @@ async def get_time_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
         kb.append([KeyboardButton(text="Назад")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
 
-async def get_edit_games_kb(games: list[Game]) -> InlineKeyboardMarkup:
+async def get_edit_games_kb(games: list[Game], process: str = "", new_game: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+
     for game in games:
         builder.add(InlineKeyboardButton(
-            text=game.name,
-            callback_data=f"read_game_{game.name}"
+            text=f"{game.name}",
+            callback_data=f"update_game_{game.name}"
         ))
     
-    builder.add(
-        InlineKeyboardButton(
-            text="Добавить игры",
-            callback_data="add_new_game"
+    if new_game:
+        builder.add(
+            InlineKeyboardButton(
+                text="Добавить игру",
+                callback_data="add_new_game"
+            )
         )
-    )
-    builder.add(
-        InlineKeyboardButton(
-            text="Назад",
-            callback_data="edit_profile"
+
+    if process != "creating_profile":
+        builder.add(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data="edit_profile"
+            )
         )
-    )
+    else:
+        builder.add(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data="get_back_from_games_to_creating_profile"
+            )
+        )
+
 
     builder.adjust(1)
 
@@ -371,8 +383,10 @@ async def get_read_game_kb(game: str) -> InlineKeyboardMarkup:
     )
 
     builder.add(
-        InlineKeyboardButton(text="Назад", callback_data=f"read_game_{game}")
+        InlineKeyboardButton(text="Назад", callback_data=f"update_games")
     )
+
+    builder.adjust(1)
 
     return builder.as_markup()
 

@@ -355,8 +355,8 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 
             await state.update_data(
                 games=games,
-                game=None,
-                game_rank=None
+                game=game,
+                game_rank=rank
             )
         
             await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
@@ -375,8 +375,8 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 
             await state.update_data(
                 games=games,
-                game=None,
-                game_rank=None
+                game=game,
+                game_rank=rank
             )
         
             await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
@@ -403,18 +403,20 @@ async def add_new_game(message: Message, state: FSMContext):
         data = await state.get_data()
         games = data["games"]
         
-        if games:
-            # Удаляем последнюю добавленную игру
-            last_game = list(games.keys())[-1]
-            del games[last_game]
-            await state.update_data(games=games)
+        # if games:
+        #     # Удаляем последнюю добавленную игру
+        #     last_game = list(games.keys())[-1]
+        #     del games[last_game]
+        #     await state.update_data(games=games)
             
-            if games:  # Если остались игры, возвращаемся к выбору добавления
-                await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-                await state.set_state(ProfileForm.add_new_game)
-            else:  # Если игр не осталось, возвращаемся к выбору первой игры
-                await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
-                await state.set_state(ProfileForm.game)
+        #     if games:  # Если остались игры, возвращаемся к выбору добавления
+        #         await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+        #         await state.set_state(ProfileForm.add_new_game)
+        #     else:  # Если игр не осталось, возвращаемся к выбору первой игры
+        #         await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+        #         await state.set_state(ProfileForm.game)
+        await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await state.set_state(ProfileForm.gallery)
         return
     
     if message.text:

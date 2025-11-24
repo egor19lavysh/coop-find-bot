@@ -40,7 +40,10 @@ TEXT_RANK = "Укажи свой ранг/уровень в {game}:"
 TEXT_ADD_GAME = "Добавить еще игру?"
 TEXT_GAME = "Выбери игры, в которую ищешь тиммейтов:"
 TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
-
+TEXT_WARCRAFT_MODE = "Выбери режим из списка, в котором хочешь указать рейтинг:"
+TEXT_NUM_RANK = "Введи силу аккаунта числом:"
+TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
+TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
 
 
 @router.callback_query(F.data == "edit_profile")
@@ -98,6 +101,7 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
         await state.set_state(EditProfileForm.gender)
     
     elif field == "games":
+        await state.set_state(EditProfileForm.games)
         await update_game(callback, state)
 
     elif field == "time":
@@ -344,19 +348,343 @@ async def update_photo(message: Message, state: FSMContext):
         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
 
 
-@router.callback_query(EditProfileForm.games)
-@require_profile
+@router.callback_query(F.data == "update_games")
+async def update_games(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    await update_game(callback, state)
+
+
 async def update_game(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     games = await repository.get_games_by_user_id(user_id=callback.from_user.id)
-    await callback.message.answer("Ваши игры:", reply_markup=await get_edit_games_kb(games))
+    data = await state.get_data()
+    if "process" in data and data["process"] == "creating_profile":
+        await callback.message.answer("Ваши игры:", reply_markup=await get_edit_games_kb(games, process="creating_profile"))
+    else:
+        await callback.message.answer("Ваши игры:", reply_markup=await get_edit_games_kb(games, new_game=True))
 
+
+@router.callback_query(F.data == "add_new_game")
+async def create_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    all_games = GAME_LIST
+    user_games = await repository.get_games_by_user_id(callback.from_user.id)
+    user_game_names = {g.name for g in user_games}
+
+    # Исключаем уже добавленные игры
+    available_games = [game for game in all_games if game not in user_game_names]
+
+    if not available_games:
+        await callback.message.answer("Вы уже добавили все доступные игры.", reply_markup=await get_back_to_menu())
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for game in available_games:
+        keyboard.add(InlineKeyboardButton(text=game, callback_data=f"select_new_game_{game}"))
+    keyboard.adjust(2)
+    await callback.message.answer("Выберите игру для добавления:", reply_markup=keyboard.as_markup())
+
+@router.callback_query(F.data.startswith("select_new_game_"))
+async def select_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    game = callback.data.split("_")[-1]
+
+    await state.update_data(
+            games={},
+            game=game,
+            game_rank="",
+            process="adding_new_game"
+    )
+
+    await edit_game_rank(callback, state)
         
-@router.callback_query(F.data.startswith("read_game_"))
-async def read_game(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(F.data.startswith("update_game_"))
+async def get_game(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     await callback.answer()
     game = callback.data.split("_")[-1]
     await callback.message.answer(f"Выберите, что вы хотите изменить в {game}", reply_markup=await get_read_game_kb(game))
+
+@router.callback_query(F.data.startswith("edit_rank_"))
+async def edit_game_rank_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    game = callback.data.split("_")[-1]
+    data = await state.get_data()
+
+    if "process" in data and data["process"] == "creating_profile":
+        pass
+    else:
+        await state.update_data(
+                games={},
+                game=game,
+                game_rank="",
+                process="editing_rank"
+        )
+
+    await edit_game_rank(callback, state)
+
+
+async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+
+    if game in GAMES_RANKS:
+        await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game))
+        await state.set_state(EditProfileForm.rank)
+    elif game == "Warcraft":
+        await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
+        await state.set_state(EditProfileForm.add_warcraft_mode)
+    else:
+        await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+        await state.set_state(EditProfileForm.rank)
+
+@router.message(EditProfileForm.add_warcraft_mode)
+async def save_mode(message: Message, state: FSMContext):
+    if message.text:
+        if message.text in WARCRAFT_MODES + ["Пропустить"]:
+            data = await state.get_data()
+            rank = data["game_rank"]
+            game = data["game"]
+
+            if message.text not in rank:
+
+                if message.text == "Пропустить":
+                    if rank:
+                        rank += ""
+                    else:
+                        rank = "" 
+
+                    
+                    if "process" in data:
+                        if data["process"] in ("editing_rank", "creating_profile"):
+                            await repository.update_game_rank(user_id=message.from_user.id, game=game, rank=rank)
+                            if data["process"] == "creating_profile":
+                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                                await message.answer("Вернуться к проверке анкеты?", 
+                                                        reply_markup=await get_back_to_check_kb())
+                            else:
+                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                        elif data["process"] == "adding_new_game":
+                            await state.update_data(
+                            game_rank=rank
+                            )
+                            await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+                            await state.set_state(EditProfileForm.gallery)
+                    else:
+                        await message.answer("Произошла какая-то ошибка...")
+                else:
+                    mode = message.text
+                    await state.update_data(mode=mode)
+                    is_pve = mode == "PvE"
+
+                    await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
+                    await state.set_state(EditProfileForm.add_warcraft_rank)
+            else:
+                await message.answer("Вы уже выбрали этот режим. Выберите другой.")
+
+        else:
+            await message.answer("Выберите режим из предложенного списка.")
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+
+@router.callback_query(EditProfileForm.add_warcraft_rank)
+async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    if callback.data == "back_from_warcraft_ranks":
+        await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
+        await state.set_state(EditProfileForm.add_warcraft_mode)
+        return
+    elif callback.data.startswith("ranks_page_"):
+        await handle_ranks_pagination(callback, state)
+        return
+    
+    # Parse the callback data to get index and is_pve flag
+    parts = callback.data.split("/")
+    if len(parts) >= 3 and parts[0] == "add_warcraft_rank":
+        try:
+            rank_index = int(parts[1])
+            is_pve_str = parts[2]
+            is_pve = is_pve_str.lower() == 'true'
+            # Get the actual rank based on the stored state or recreate the list
+            ranks = WARCRAFT_PvE if is_pve else WARCRAFT
+            if 0 <= rank_index < len(ranks):
+                rank = ranks[rank_index]
+                await callback.message.edit_text(f"Выбран рейтинг: {rank}", reply_markup=None)
+            else:
+                await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+                return
+        except (ValueError, IndexError) as e:
+            await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+            print(e)
+            return
+    else:
+        await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+        return
+    
+    data = await state.get_data()
+    games = data["games"]
+    game = data["game"]
+    game_rank = data["game_rank"]
+    mode = data["mode"]
+
+    new_rank = (game_rank + f"{mode}/{rank};")
+
+
+    await state.update_data(
+            games=games,
+            game=game,
+            mode=None,
+            game_rank=new_rank
+        )
+    
+    await callback.message.answer("Выбери режим из списка, в котором хочешь указать рейтинг:", reply_markup=await get_warcraft_modes_kb())
+    await state.set_state(EditProfileForm.add_warcraft_mode)
+
+
+async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
+    #await callback.message.delete()
+
+    page = int(callback.data.split("_")[-1])
+    mode = callback.data.split("_")[-2]
+    data = await state.get_data()
+    
+    await state.update_data(current_page=page)
+    keyboard = await get_warcraft_ranks_kb(is_pve=True, page=page) if mode == "pve" else await get_warcraft_ranks_kb(is_pve=False, page=page)
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    
+    await callback.answer()
+
+
+@router.message(EditProfileForm.rank)
+async def save_rank(message: Message, state: FSMContext):
+
+    data = await state.get_data()
+    game = data["game"]
+    
+    if message.text:
+        if message.text == "Пропустить":
+            rank = None
+        else:
+            rank = message.text
+            if game in ["Raid Shadow Legends", "WoR"]:
+                try:
+                    float(rank)
+                except Exception:
+                    await message.answer("Введите численное значение!")
+                    return 
+
+            
+
+        if "process" in data:
+            if data["process"] in ("editing_rank", "creating_profile"):
+                await repository.update_game_rank(user_id=message.from_user.id, game=game, rank=rank)
+                if data["process"] == "creating_profile":
+                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                    await message.answer("Вернуться к проверке анкеты?", 
+                                                        reply_markup=await get_back_to_check_kb())
+                else:
+                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            elif data["process"] == "adding_new_game":
+                await state.update_data(
+                game_rank=rank
+                )
+                await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+                await state.set_state(EditProfileForm.gallery)
+        else:
+            await message.answer("Произошла какая-то ошибка...")
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
+        await state.set_state(EditProfileForm.rank)
+
+@router.callback_query(F.data.startswith("edit_gallery_"))
+async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    game = callback.data.split("_")[-1]
+    data = await state.get_data()
+
+    if "process" in data and data["process"] == "creating_profile":
+        pass
+    else:
+        await state.update_data(
+                games={},
+                game=game,
+                process="editing_gallery"
+        )
+    await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+    await state.set_state(EditProfileForm.gallery)
+
+@router.message(EditProfileForm.gallery)
+async def save_gallery(message: Message, state: FSMContext, album: list[Message] = None):
+    data = await state.get_data()
+    game = data["game"]
+    rank = data.get("game_rank", "")
+    
+    if message.media_group_id and message.photo:
+
+        if len(album) <= 10:
+
+            if "process" in data:
+                if data["process"] in ("editing_gallery", "creating_profile"):
+                    await repository.update_game_gallery(user_id=message.from_user.id, game=game, gallery=[photo.photo[-1].file_id for photo in album])
+                    if data["process"] == "creating_profile":
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                        await message.answer("Вернуться к проверке анкеты?", 
+                                                            reply_markup=await get_back_to_check_kb())
+                    else:
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                elif data["process"] == "adding_new_game":
+                    await repository.create_game(
+                        user_id=message.from_user.id,
+                        name=game,
+                        rank=rank,
+                        gallery=[photo.photo[-1].file_id for photo in album]
+                    )
+                    await message.answer(f"Игра {game} успешно добавлена!", reply_markup=await get_back_to_menu())
+                    await state.clear()
+                    
+            else:
+                await message.answer("Произошла какая-то ошибка...")
+        else:
+            await message.answer("Отправьте до 10 фотографий.")
+            return
+        
+    elif message.text:
+        if message.text == "Пропустить":
+
+            if "process" in data:
+                if data["process"] in ("editing_gallery", "creating_profile"):
+                    await repository.update_game_gallery(user_id=message.from_user.id, game=game, gallery=None)
+                    if data["process"] == "creating_profile":
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                        await message.answer("Вернуться к проверке анкеты?", 
+                                                            reply_markup=await get_back_to_check_kb())
+                    else:
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                elif data["process"] == "adding_new_game":
+                    print(game, rank)
+                    await repository.create_game(
+                        user_id=message.from_user.id,
+                        name=game,
+                        rank=rank,
+                        gallery=None
+                    )
+                    await message.answer(f"Игра {game} успешно добавлена!", reply_markup=await get_back_to_menu())
+                    await state.clear()
+            else:
+                await message.answer("Произошла какая-то ошибка...")
+    else:
+        await message.answer("Пришлите фотографии или выберите ответ с клавиатуры!")
+
+@router.callback_query(F.data.startswith("delete_game_"))
+async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    game = callback.data.split("_")[-1]
+    await repository.delete_game(callback.from_user.id, game)
+    await callback.message.answer(f"Игра {game} была удалена.", reply_markup=await get_back_to_menu())
+
 
 
 @router.callback_query(F.data == "back_to_profile_check")
@@ -367,3 +695,11 @@ async def back_to_profile_check(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ProfileForm.check_profile)
     await check_profile(callback.message, state)
     await callback.answer()
+
+
+@router.callback_query(F.data == "get_back_from_games_to_creating_profile")
+async def get_back_from_games_to_creating_profile(callback: CallbackQuery, state: FSMContext):
+     await callback.answer()
+     await callback.message.delete()
+     await callback.message.answer("Вернуться к проверке анкеты?", 
+                                                            reply_markup=await get_back_to_check_kb())

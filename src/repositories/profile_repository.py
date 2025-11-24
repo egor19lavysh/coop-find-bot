@@ -275,6 +275,52 @@ class ProfileRepository:
 
                 await session.commit()
 
+    async def create_game(self, user_id: int,
+                          name: str,
+                          rank: str,
+                          gallery: list[str]) -> None:
+        if profile := await self.get_profile(user_id=user_id):
+            async with self.session_factory() as session:
+                await session.execute(
+                    insert(Game)
+                    .values(
+                        name=name,
+                        rank=rank,
+                        gallery=gallery,
+                        profile_id=profile.id
+                    )
+                )
+                await session.commit()
+
+    async def update_game_rank(self, user_id: int, game: str, rank: str) -> None:
+        if profile := await self.get_profile(user_id=user_id):
+            async with self.session_factory() as session:
+                await session.execute(
+                    update(Game)
+                    .where(Game.profile_id == profile.id, Game.name == game)
+                    .values(rank=rank)
+                )
+                await session.commit()
+    
+    async def update_game_gallery(self, user_id: int, game: str, gallery: list[str]) -> None:
+        if profile := await self.get_profile(user_id=user_id):
+            async with self.session_factory() as session:
+                await session.execute(
+                    update(Game)
+                    .where(Game.profile_id == profile.id, Game.name == game)
+                    .values(gallery=gallery)
+                )
+                await session.commit()
+
+    async def delete_game(self, user_id: int, game: str) -> None:
+        if profile := await self.get_profile(user_id=user_id):
+            async with self.session_factory() as session:
+                await session.execute(
+                    delete(Game)
+                    .where(Game.profile_id == profile.id, Game.name == game)
+                )
+                await session.commit()
+
     async def delete_games(self, profile_id: int) -> None:
         async with self.session_factory() as session:
             await session.execute(delete(Game).where(Game.profile_id == profile_id))
