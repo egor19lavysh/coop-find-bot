@@ -141,11 +141,11 @@ async def get_profile_kb(user_id: int) -> InlineKeyboardBuilder:
 
     return builder
 
-async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
+async def get_interaction_kb(user_id: int, game: str, need_filter: bool = False) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
             text="Галерея",
-            callback_data=f"show_gallery_{user_id}_{game}"
+            callback_data=f"show_gallery_{user_id}_{game}" if not need_filter else f"show_gallery_filter_{user_id}_{game}"
         )],
         [InlineKeyboardButton(
             text="Написать сообщение",
@@ -157,7 +157,7 @@ async def get_interaction_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
         )],
         [InlineKeyboardButton(
             text="Назад",
-            callback_data="back_to_profiles"
+            callback_data="back_to_profiles" if not need_filter else "profile_by_filters"
         )]
     ]
 

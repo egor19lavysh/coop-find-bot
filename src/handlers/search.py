@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from utils.constants import *
@@ -11,6 +11,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
 from utils.level_up import level_up
 from states.search import *
+from utils.ranks import *
+from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
+from .profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
+
 
 router = Router()
 
@@ -58,17 +62,33 @@ async def start_search_callback(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("search_type_"))
 async def choose_search_type(callback: CallbackQuery, state: FSMContext):
     search_type = callback.data.split("_")[-1]
+    await callback.answer()
 
     await callback.message.delete()
     
     await state.update_data(search_type=search_type)
-    await state.set_state(GameForm.game)
-    
-    await callback.message.answer(
-        text=TEXT_CHOOSE_GAME,
-        reply_markup=await get_game_inline_kb()
-    )
+    if search_type != "profiles":
+        await state.set_state(GameForm.game)
+        
+        await callback.message.answer(
+            text=TEXT_CHOOSE_GAME,
+            reply_markup=await get_game_inline_kb()
+        )
+    else:
+        await callback.message.answer("Выберите вид поиска:", reply_markup=await get_search_profiles_types())
+
+@router.callback_query(F.data == "game_search")
+async def game_search(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+
+    await callback.message.delete()
+    
+    await state.set_state(GameForm.game)
+        
+    await callback.message.answer(
+            text=TEXT_CHOOSE_GAME,
+            reply_markup=await get_game_inline_kb()
+        )
 
 @router.callback_query(F.data.startswith("get_profiles_by_"))
 async def get_profiles_callback_handler(callback: CallbackQuery, state: FSMContext):
@@ -414,3 +434,176 @@ async def handle_current_page(callback: CallbackQuery):
     #await callback.message.delete()
 
     await callback.answer()
+
+@router.callback_query(F.data == "filter_search")
+async def filter_search(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    await callback.message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
+    await state.set_state(SearchForm.game)
+
+@router.callback_query(F.data.startswith("filter_game_"))
+async def filter_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+
+    game = callback.data.split("_")[-1]
+    await state.update_data(game=game)
+
+    if game in GAMES_RANKS:
+        await callback.message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
+        await state.set_state(SearchForm.rank)
+    elif game == "Warcraft":
+        await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
+        await state.set_state(SearchForm.warcraft_mode)
+    else:
+        await callback.message.answer("Введите силу аккаунта числом:", reply_markup=ReplyKeyboardRemove())
+        await state.set_state(SearchForm.rank)
+
+
+@router.message(SearchForm.rank)
+async def save_rank(message: Message, state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+
+    if message.text:
+        if message.text == "Назад":
+            await message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
+            await state.set_state(SearchForm.game)
+            return 
+
+        elif message.text == "Пропустить":
+            await state.update_data(rank=None)
+
+        elif message.text in GAMES_RANKS:
+            await state.update_data(rank=message.text)
+        elif game in ["Raid Shadow Legends", "WoR"]:
+            try:
+                float(message.text)
+            except Exception:
+                await message.answer("Введите численное значение!")
+                return
+
+            await state.update_data(
+                rank=message.text
+            )
+
+        await message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+        await state.set_state(SearchForm.goal)
+
+@router.message(SearchForm.warcraft_mode)
+async def save_mode(message: Message, state: FSMContext):
+    if message.text:
+        if message.text in WARCRAFT_MODES:
+            await state.update_data(
+                mode=message.text
+            )
+            is_pve = message.text == "PvE"
+            await message.answer("Выберите рейтинг:", reply_markup = await get_warcraft_ranks_kb(is_pve=is_pve))
+            await state.set_state(SearchForm.warcraft_rank)
+        elif message.text == "Пропустить":
+            await state.update_data(
+                rank=None
+            )
+            await message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+            await state.set_state(SearchForm.goal)
+        elif message.text == "Назад":
+            await message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
+            await state.set_state(SearchForm.warcraft_mode)
+        else:
+            await message.answer("Выберите ответ из списка!")
+    else:
+        await message.answer("Ответьте текстом!")
+
+
+@router.callback_query(SearchForm.warcraft_rank)
+async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    if callback.data == "back_from_warcraft_ranks":
+        await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
+        await state.set_state(SearchForm.warcraft_mode)
+        return
+    elif callback.data.startswith("ranks_page_"):
+        await handle_ranks_pagination(callback, state)
+        return
+
+    parts = callback.data.split("/")
+    if len(parts) >= 3 and parts[0] == "add_warcraft_rank":
+        try:
+            rank_index = int(parts[1])
+            is_pve_str = parts[2]
+            is_pve = is_pve_str.lower() == 'true'
+            # Get the actual rank based on the stored state or recreate the list
+            ranks = WARCRAFT_PvE if is_pve else WARCRAFT
+            if 0 <= rank_index < len(ranks):
+                rank = ranks[rank_index]
+                await callback.message.edit_text(f"Выбран рейтинг: {rank}", reply_markup=None)
+            else:
+                await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+                return
+        except (ValueError, IndexError) as e:
+            await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+            print(e)
+            return
+    else:
+        await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
+        return
+    
+    data = await state.get_data()
+    
+    await state.update_data(
+        rank=data["mode"] + "/" + rank + ";"
+    )
+
+    await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+    await state.set_state(SearchForm.goal)
+
+
+
+
+@router.message(SearchForm.goal)
+async def save_goal(message: Message, state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+
+    if message.text:
+        if message.text == "Назад":
+            await message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
+            await state.set_state(SearchForm.rank)
+            return
+
+        elif message.text == "Пропустить":
+            await state.update_data(goal=None)
+
+        elif message.text in GOALS_LIST:
+            await state.update_data(goal=message.text)
+
+    await get_profiles_by_filter(message, state)
+
+
+@router.callback_query(F.data == "profile_by_filters")
+async def get_profiles_by_filter_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    await get_profiles_by_filter(callback.message, state)
+
+async def get_profiles_by_filter(message: Message, state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+    rank = data.get("rank", None)
+    goal = data.get("goal",  None)
+    profiles = await repository.get_profiles_by_filters(game=game, rank=rank, goal=goal, user_id=message.from_user.id)
+
+    
+    if profiles:
+        await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")
+        
+        keyboard = await get_profiles_kb(profiles, game=game, page=0, need_filter=True)
+        await message.answer(
+            text=TEXT_PROFILES_FOUND,
+            reply_markup=keyboard
+        )
+    else:
+        await message.answer(text="Активных анкет по заданным фильтрам не нашлось...", reply_markup=await get_back_to_games_kb("profiles"))
+        await state.clear()

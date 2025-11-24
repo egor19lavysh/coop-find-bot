@@ -45,7 +45,11 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
 
     callback_parts = callback.data.split("_")
     user_id = int(callback_parts[-1])
-    type_user = callback_parts[-2]
+    if "filter" in callback_parts:
+        type_user = "other"
+    else:
+        type_user = callback_parts[-2]
+
 
     if type_user == "other":
         data = await state.get_data()
@@ -80,7 +84,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
             user_rank = ""
 
         if type_user == "other":
-            keyboard = await get_interaction_kb(user_id=user_id, game=game)
+            keyboard = await get_interaction_kb(user_id=user_id, game=game) if "filter" not in callback.data else await get_interaction_kb(user_id=user_id, game=game, need_filter=True)
         elif type_user == "invite":
             user = await callback.bot.get_chat(user_id)
             keyboard = await get_back_to_main_menu_from_invite(user.username)
@@ -137,7 +141,7 @@ async def show_gallery(callback: CallbackQuery):
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
         text="Назад",
-        callback_data=f"read_profile_other_{user_id}"
+        callback_data=f"read_profile_other_{user_id}" if "filter" not in callback.data else f"read_profile_other_filter_{user_id}"
     )]])
 
 

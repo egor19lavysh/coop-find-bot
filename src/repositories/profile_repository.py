@@ -54,6 +54,7 @@ class ProfileRepository:
                 select(Profile)
             )
             return result.scalars().all()
+        
     async def get_profile(self, user_id: int) -> Profile | None:
         async with self.session_factory() as session:
             result = await session.execute(
@@ -74,6 +75,27 @@ class ProfileRepository:
                 .distinct()
             )
         return result.scalars().all()
+    
+    async def get_profiles_by_filters(self,
+                                      user_id: int, 
+                                      game: str,
+                                      rank: str = None,
+                                      goal: str = None) -> list[Profile]:
+        stmt = select(Profile).join(Profile.games).where(Profile.is_active, 
+                                                         Game.name == game, 
+                                                         Profile.user_id != user_id)
+        if rank:
+            stmt = stmt.where(Game.rank.contains(rank))
+        if goal:
+            stmt = stmt.where(Profile.goals.contains([goal]))
+
+        stmt = stmt.distinct()
+    
+        async with self.session_factory() as session:
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+        
 
     async def update_photo(self, user_id: int, photo: str) -> None:
         async with self.session_factory() as session:

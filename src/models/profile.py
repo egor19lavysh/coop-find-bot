@@ -1,13 +1,14 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
-from sqlalchemy import ARRAY, Integer, Date, ForeignKey, BigInteger, String
+from sqlalchemy import Integer, Date, ForeignKey, BigInteger, String
+from sqlalchemy.dialects.postgresql import ARRAY
 from datetime import date
 
 class Profile(Base):
     __tablename__ = "ggstore_profiles"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[int]
+    user_id: Mapped[int] = mapped_column(BigInteger)
     nickname: Mapped[str]
     telegram_tag: Mapped[str] = mapped_column(nullable=True)
     gender: Mapped[str] = mapped_column(nullable=True)

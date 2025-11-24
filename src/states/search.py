@@ -8,3 +8,11 @@ class SendMessageForm(StatesGroup):
 class GameForm(StatesGroup):
     search_type = State()
     game = State()
+
+class SearchForm(StatesGroup):
+    game = State()
+    warcraft_mode = State()
+    warcraft_rank = State()
+    mode = State()
+    rank = State()
+    goal = State()
