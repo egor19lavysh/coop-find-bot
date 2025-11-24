@@ -91,7 +91,8 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
             team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
             games=profile.games_str,
             rank=user_rank,
-            add_info=PROFILE_ADD_INFO.format(about=profile.about, goal=", ".join(profile.goals) if profile.goals else "Не указаны")
+            add_info=PROFILE_ADD_INFO.format(time=", ".join(profile.convenient_time) if profile.convenient_time else "Не указано", 
+                                             about=profile.about, goal=", ".join(profile.goals) if profile.goals else "Не указаны")
         )
 
         if profile.photo:

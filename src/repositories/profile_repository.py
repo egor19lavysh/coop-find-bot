@@ -15,6 +15,7 @@ class ProfileRepository:
                        user_id: int,
                        nickname: str,
                        games: dict[str, dict[str, str]],
+                       time: list[str],
                        about: str,
                        goals: list[str],
                        is_active: bool,
@@ -28,6 +29,7 @@ class ProfileRepository:
                         nickname=nickname,
                         telegram_tag=telegram_tag,
                         gender=gender,
+                        convenient_time=time,
                         about=about,
                         goals=goals,
                         photo=photo,
@@ -246,6 +248,15 @@ class ProfileRepository:
                 update(Profile)
                 .where(Profile.user_id == user_id)
                 .values(goals=goals)
+            )
+            await session.commit()
+
+    async def update_time(self, user_id: int, time: list[str]) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Profile)
+                .where(Profile.user_id == user_id)
+                .values(convenient_time=time)
             )
             await session.commit()
 

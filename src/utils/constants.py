@@ -48,6 +48,7 @@ FULL_PROFILE_SAMPLE = """
 """
 
 PROFILE_ADD_INFO = """
+<b>Удобное время</b>: {time}
 <b>О себе:</b> {about}
 <b>Цели:</b> {goal}
 """

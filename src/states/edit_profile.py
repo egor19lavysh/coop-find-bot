@@ -8,6 +8,8 @@ class EditProfileForm(StatesGroup):
     gender = State()
     games = State()
     rank = State()
+    time = State()
+    add_new_time = State()
     add_new_game = State()
     about = State()
     goal = State()

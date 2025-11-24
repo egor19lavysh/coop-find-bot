@@ -39,6 +39,7 @@ IS_PROFILE_OK = "Все верно?"
 TEXT_RANK = "Укажи свой ранг/уровень в {game}:"
 TEXT_ADD_GAME = "Добавить еще игру?"
 TEXT_GAME = "Выбери игры, в которую ищешь тиммейтов:"
+TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
 
 
 
@@ -46,9 +47,11 @@ TEXT_GAME = "Выбери игры, в которую ищешь тиммейт�
 @require_profile
 async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await state.clear()
 
     await state.update_data(
         games = {},
+        time = [],
         goals = []
     )
     
@@ -65,6 +68,7 @@ async def start_edit_profile_message(message: Message, state: FSMContext):
     else:
         await state.update_data(
         games = {},
+        time = [],
         goals = []
     )
     
@@ -94,8 +98,11 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
         await state.set_state(EditProfileForm.gender)
     
     elif field == "games":
-        await callback.message.answer(TEXT_EDIT_GAMES, reply_markup=await get_game_kb(False))
-        await state.set_state(EditProfileForm.games)
+        await update_game(callback, state)
+
+    elif field == "time":
+        await callback.message.answer(TEXT_TIME, reply_markup=await get_time_kb(False))
+        await state.set_state(EditProfileForm.time)
     
     elif field == "about":
         await callback.message.answer(TEXT_EDIT_ABOUT)
@@ -176,6 +183,69 @@ async def update_gender(message: Message, state: FSMContext):
             await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
+
+@router.message(EditProfileForm.time)
+@require_profile
+async def update_time(message: Message, state: FSMContext):
+    data = await state.get_data()
+    time = data["time"]
+
+    if message.text:
+        if message.text in CONVENIENT_TIME:
+            if message.text not in time:
+                time.append(message.text)
+                await state.update_data(time=time)
+                await message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(True))
+                await state.set_state(EditProfileForm.add_new_time)
+            else:
+                await message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb())
+        else:
+            await message.answer(text="Выбери промежуток времени из списка.")
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb())
+
+@router.message(EditProfileForm.add_new_time)
+@require_profile
+async def add_new_time(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    if message.text == TEXT_BACK:
+        data = await state.get_data()
+        time = data["time"]
+        
+        if time:
+            time.pop()
+            await state.update_data(time=time)
+            
+            if time:  # Если остались игры, возвращаемся к выбору добавления
+                await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(False))
+                await state.set_state(EditProfileForm.add_new_time)
+            else:  # Если игр не осталось, возвращаемся к выбору первой игры
+                await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb())
+                await state.set_state(EditProfileForm.time)
+        return
+
+    if message.text:
+        if message.text == "Да":
+            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb())
+            await state.set_state(EditProfileForm.time)
+        elif message.text == "Нет":
+            time = data["time"]
+            await repository.update_time(user_id=message.from_user.id, time=time)
+
+            if "process" in data and data["process"] == "creating_profile":
+                await state.update_data(time=time)
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await message.answer("Вернуться к проверке анкеты?", 
+                            reply_markup=await get_back_to_check_kb())
+            else:
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+        else:
+            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
+            await state.set_state(EditProfileForm.add_new_time)
+    else:
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb())
+        await state.set_state(EditProfileForm.add_new_time)
 
 @router.message(EditProfileForm.about)
 @require_profile
@@ -276,87 +346,18 @@ async def update_photo(message: Message, state: FSMContext):
 
 @router.callback_query(EditProfileForm.games)
 @require_profile
-async def save_game(callback: CallbackQuery, state: FSMContext):
-    game = callback.data.split("_")[-1]
-
-    data = await state.get_data()
-    games = data["games"]
-
+async def update_game(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    games = await repository.get_games_by_user_id(user_id=callback.from_user.id)
+    await callback.message.answer("Ваши игры:", reply_markup=await get_edit_games_kb(games))
 
-    if game:
-        if game in GAME_LIST:
-            if game not in games:
-                await state.update_data(game=game)
-            else:
-                await callback.message.answer(text="Ты уже выбрал эту игру!")
-                await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(False))
-                await state.set_state(EditProfileForm.add_new_game)
-                return
-        else:
-            await callback.message.answer(text=TEXT_WRONG_ANSWER)
-            await state.set_state(EditProfileForm.games)
-            return
         
-        await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_skip_keyboard(False))
-        await state.set_state(EditProfileForm.rank)
-    else:
-        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
-        await state.set_state(EditProfileForm.games)
-    
+@router.callback_query(F.data.startswith("read_game_"))
+async def read_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    game = callback.data.split("_")[-1]
+    await callback.message.answer(f"Выберите, что вы хотите изменить в {game}", reply_markup=await get_read_game_kb(game))
 
-
-@router.message(EditProfileForm.rank)
-async def save_rank(message: Message, state: FSMContext):
-    if message.text:
-        data = await state.get_data()
-        games = data["games"]
-        game = data["game"]
-
-        if message.text == "Пропустить":
-            rank = None
-        else:
-            rank = message.text
-
-        games[game] = rank
-
-        await state.update_data(
-            games=games,
-            game=None
-        )
-        
-        await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(False))
-        await state.set_state(EditProfileForm.add_new_game)
-    else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
-        await state.set_state(EditProfileForm.rank)
-
-
-@router.message(EditProfileForm.add_new_game)
-async def add_new_game(message: Message, state: FSMContext):
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(False))
-            await state.set_state(EditProfileForm.games)
-        elif message.text == "Нет":
-            data = await state.get_data()
-            games = data["games"]
-            await repository.update_games(user_id=message.from_user.id, games=games)
-
-            data = await state.get_data()
-            if "process" in data and data["process"] == "creating_profile":
-                await state.update_data(games=games)
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                await message.answer("Вернуться к проверке анкеты?", 
-                            reply_markup=await get_back_to_check_kb())
-            else:
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
-        else:
-            await message.answer(text=TEXT_WRONG_ANSWER)
-            await state.set_state(EditProfileForm.add_new_game)
-    else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
-        await state.set_state(EditProfileForm.add_new_game)
 
 @router.callback_query(F.data == "back_to_profile_check")
 async def back_to_profile_check(callback: CallbackQuery, state: FSMContext):

@@ -723,6 +723,7 @@ async def save_profile(callback: CallbackQuery, state: FSMContext):
         user_id = data["user_id"] if "user_id" in data else callback.from_user.id,
         nickname = data["nickname"],
         games = data["games"],
+        time=data["time"],
         about = data["about"],
         goals = data["goals"],
         is_active = data.get("is_activate", False),

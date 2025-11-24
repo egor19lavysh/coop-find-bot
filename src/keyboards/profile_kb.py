@@ -2,6 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENIENT_TIME
 from utils.ranks import *
+from models.profile import Game
 
 TEXT_BACK = "Назад"
 
@@ -176,6 +177,9 @@ async def get_edit_fields_kb():
         [  
             InlineKeyboardButton(text="Игры", callback_data="edit_games"),
         ],
+        [  
+            InlineKeyboardButton(text="Удобное время", callback_data="edit_time"),
+        ],
         [
             InlineKeyboardButton(text="О себе", callback_data="edit_about"),
         ],
@@ -326,3 +330,49 @@ async def get_time_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
     if with_back:
         kb.append([KeyboardButton(text="Назад")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
+
+async def get_edit_games_kb(games: list[Game]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for game in games:
+        builder.add(InlineKeyboardButton(
+            text=game.name,
+            callback_data=f"read_game_{game.name}"
+        ))
+    
+    builder.add(
+        InlineKeyboardButton(
+            text="Добавить игры",
+            callback_data="add_new_game"
+        )
+    )
+    builder.add(
+        InlineKeyboardButton(
+            text="Назад",
+            callback_data="edit_profile"
+        )
+    )
+
+    builder.adjust(1)
+
+    return builder.as_markup()
+
+async def get_read_game_kb(game: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.add(
+        InlineKeyboardButton(text="Ранг", callback_data=f"edit_rank_{game}")
+    )
+
+    builder.add(
+        InlineKeyboardButton(text="Галерея", callback_data=f"edit_gallery_{game}")
+    )
+
+    builder.add(
+        InlineKeyboardButton(text="Удалить", callback_data=f"delete_game_{game}")
+    )
+
+    builder.add(
+        InlineKeyboardButton(text="Назад", callback_data=f"read_game_{game}")
+    )
+
+    return builder.as_markup()
+
