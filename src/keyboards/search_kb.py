@@ -246,7 +246,8 @@ async def get_to_dialog_with_user_kb(username: str) -> InlineKeyboardMarkup:
 async def get_search_profiles_types():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Поиск", callback_data="filter_search")],
-        [InlineKeyboardButton(text="Все объявления", callback_data="game_search")]
+        [InlineKeyboardButton(text="Все объявления", callback_data="game_search")],
+        [InlineKeyboardButton(text="Назад", callback_data="start_search")]
     ])
 
 async def get_games_filter_search_kb() -> InlineKeyboardMarkup:

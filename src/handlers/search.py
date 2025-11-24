@@ -299,9 +299,18 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
     clan_info += f"<b>Описание</b>: {clan.description}\n\n"
     clan_info += f"<b>Требования</b>: {clan.demands}\n\n"
 
-    if user := await callback.bot.get_chat(clan.user_id):
-        if user.username:
-            clan_info += f"<b>Тег лидера клана</b>: @{user.username}\n\n"
+    from aiogram.exceptions import TelegramBadRequest
+
+    try:
+        user = await callback.bot.get_chat(clan.user_id)
+    except TelegramBadRequest:
+        user = await repository.get_profile(user_id=clan.user_id)
+    except Exception as e:
+        print(e)
+
+    if user:
+        if user.nickname:
+            clan_info += f"<b>Тег лидера клана</b>: @{user.nickname}\n\n"
 
     if clan.created_at:
         time = clan.created_at.strftime('%d.%m.%Y %H:%M')
