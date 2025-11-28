@@ -24,6 +24,12 @@ TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля!'
 TEXT_PROFILE_DEACTIVATED = "Твоя анкета снята с поиска. Ты сможешь ее разместить в любой момент."
 TEXT_PROFILE_ACTIVATED = "Твоя анкета успешно размещена. Теперь ее видят другие пользователи."
 TEXT_YOUR_CHOICE = "Ты уверен? Знай, это твой выбор\n"
+TEXT_GALLERY = """
+✨ Галерея игрока «{name}».
+Тут находится результат его игры: его лут, сила аккаунта, персонажи, соборки и многое другое.
+
+Если галерея не соответствует игре, отправь скрин в поддержку: @ggstore_support
+"""
 
 
 @router.message(Command("profile"))
@@ -151,7 +157,7 @@ async def show_gallery(callback: CallbackQuery):
             if games[game].gallery:
                 media = [InputMediaPhoto(media=file_id) for file_id in games[game].gallery]
                 await callback.bot.send_media_group(chat_id=callback.message.chat.id, media=media)
-                await callback.message.answer("Вернуться обратно?", reply_markup=kb)
+                await callback.message.answer(TEXT_GALLERY.format(name=nickname), reply_markup=kb)
                 return
     await callback.message.answer(f"Упс, {nickname} не прикрепил фото игрового профиля", reply_markup=kb)
     

@@ -23,14 +23,33 @@ TEXT_CHOOSE_SEARCH_TYPE = """Выбери, кого хочешь найти:
 🗡️ Анкеты игроков — если ищешь одного игрока.
 🛡️ Кланы — если хочешь найти сообщество игроков.
 """
-TEXT_CHOOSE_GAME = "Выбери игру для поиска"
-TEXT_NO_CLANS = "Активных кланов по {game} не нашлось..."
-TEXT_CLANS_FOUND = "Найденные кланы:"
+TEXT_CHOOSE_GAME = """
+Настало время найти того самого тиммейта⚔️
+Того, что не ливнёт, не тильтует, и хотя бы притворится, что умеет играть.
+Выбери игру и я покажу объявления тех, кто также сейчас ищет с кем бы поиграть👇
+"""
+TEXT_CHOOSE_GAME_FOR_CLAN = "По какой игре ищем себе клан?"
+TEXT_NO_CLANS = """
+Похоже, активных кланов по {game} сейчас нет 🤷‍♂️
+
+Но не расстраивайся, ведь кто-то же должен быть первым. Предлагаю создать свой клан, заполнить анкету и ждать заявок в свой клан. А еще свой клан — это свои правила ☝️
+"""
+TEXT_CLANS_FOUND = """
+🔥 Опа, нашел пару кланов!
+
+Да, список маленький… но размер — не главное 😏
+Загляни, вдруг именно там тебя уже ждут с тёплым «го в катку?».
+
+"""
 TEXT_JOIN_CLAN = "Отправить заявку на вступление в клан"
 TEXT_INTRO = "Выбери игру."
 TEXT_WRONG_NAME_GANE = "Выбери игру из предложенного списка"
 TEXT_ANSWER_TYPE_ERROR = "Ответь текстом."
-TEXT_NO_PROFILES = "Активных анкет по {game} не нашлось..."
+TEXT_NO_PROFILES = """
+По {game} пока пустовато — активных анкет не нашлось😕
+
+Хочешь стать первопроходцем и получать приглашения первым? Заполни свою анкету и жди приглашений от тех, кто будет искать тиммейта позже.
+"""
 TEXT_PROFILES_FOUND = "Сейчас ищут напарников:"
 TEXT_SEND_MESSAGE = "Напиши пару ласковых этому фрукту"
 TEXT_TRIED_TO_SEND_MESSAGE = "Бот попытался отправить сообщение, но что-то пошло не так..."
@@ -71,7 +90,7 @@ async def choose_search_type(callback: CallbackQuery, state: FSMContext):
         await state.set_state(GameForm.game)
         
         await callback.message.answer(
-            text=TEXT_CHOOSE_GAME,
+            text=TEXT_CHOOSE_GAME_FOR_CLAN,
             reply_markup=await get_game_inline_kb()
         )
     else:
@@ -303,14 +322,16 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
     try:
         user = await callback.bot.get_chat(clan.user_id)
+        if user.username:
+            clan_info += f"<b>Тег лидера клана</b>: @{user.username}\n\n"
+
     except TelegramBadRequest:
         user = await repository.get_profile(user_id=clan.user_id)
-    except Exception as e:
-        print(e)
-
-    if user:
         if user.nickname:
             clan_info += f"<b>Тег лидера клана</b>: @{user.nickname}\n\n"
+    except Exception as e:
+        print(e)
+        
 
     if clan.created_at:
         time = clan.created_at.strftime('%d.%m.%Y %H:%M')
@@ -358,7 +379,7 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     
     join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
     try:
-        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id, username=callback.from_user.username) if user_profile else None
+        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
         await callback.bot.send_message(
             chat_id=clan.user_id,
             text=join_message,
@@ -373,6 +394,7 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
         
     except Exception as e:
         await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+        print(e)
 
     await callback.answer()
 

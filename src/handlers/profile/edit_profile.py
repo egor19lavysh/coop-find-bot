@@ -11,13 +11,18 @@ from states.create_profile import *
 
 
 
+
 router = Router()
 
 
 
 TEXT_CHOOSE_FIELD = "Выбери поле, которое хочешь изменить:"
 TEXT_EDIT_NICKNAME = "Введи новый никнейм:"
-TEXT_EDIT_TAG = "Введи новый тег Telegram:"
+TEXT_EDIT_TAG = """ \
+Введи новый тег в Telegram без @
+
+Если не хочешь, чтобы тебе писали в личку, просто пропусти этот шаг, нажав кнопку ниже💬
+"""
 TEXT_EDIT_GENDER = "Выбери новый пол:"
 TEXT_EDIT_GAMES = "Выбери игры для редактирования:"
 TEXT_EDIT_ABOUT = "Введи новое описание о себе:"
@@ -44,6 +49,13 @@ TEXT_WARCRAFT_MODE = "Выбери режим из списка, в которо
 TEXT_NUM_RANK = "Введи силу аккаунта числом:"
 TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
 TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
+TEXT_BACK_TO_MENU = "Вернуться назад?"
+TEXT_RSL = """
+Введи силу аккаунта в миллионах 🌟
+Если сила меньше 1 млн — впиши дробное значение.
+
+Пример: 500 000 тыс = 0,5 млн
+"""
 
 
 @router.callback_query(F.data == "edit_profile")
@@ -132,11 +144,13 @@ async def update_nickname(message: Message, state: FSMContext):
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data(nickname=message.text)
-            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+            await state.clear()
 
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
@@ -156,11 +170,14 @@ async def update_telegram_tag(message: Message, state: FSMContext):
         data = await state.get_data(telegram_tag=telegram_tag)
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data()
-            await message.answer(TEXT_SUCCESS_EDIT)
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+            await state.clear()
+
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -184,7 +201,10 @@ async def update_gender(message: Message, state: FSMContext):
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+            await state.clear()
+
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -243,7 +263,10 @@ async def add_new_time(message: Message, state: FSMContext):
                 await message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())
             else:
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                await state.clear()
+
         else:
             await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
             await state.set_state(EditProfileForm.add_new_time)
@@ -263,7 +286,10 @@ async def update_about(message: Message, state: FSMContext):
             await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+            await state.clear()
+
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
@@ -306,7 +332,10 @@ async def add_new_goal(message: Message, state: FSMContext):
                 await message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())
             else:
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                await state.clear()
+
         else:
             await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
             await state.set_state(EditProfileForm.add_new_goal)
@@ -345,7 +374,11 @@ async def update_photo(message: Message, state: FSMContext):
         await message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
     else:
-        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+        await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+        await state.clear()
+
+    
 
 
 @router.callback_query(F.data == "update_games")
@@ -436,7 +469,10 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
         await state.set_state(EditProfileForm.add_warcraft_mode)
     else:
-        await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+        if game == "Raid Shadow Legends":
+            await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
+        else:
+            await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
         await state.set_state(EditProfileForm.rank)
 
 @router.message(EditProfileForm.add_warcraft_mode)
@@ -464,7 +500,10 @@ async def save_mode(message: Message, state: FSMContext):
                                 await message.answer("Вернуться к проверке анкеты?", 
                                                         reply_markup=await get_back_to_check_kb())
                             else:
-                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                                await state.clear()
+
                         elif data["process"] == "adding_new_game":
                             await state.update_data(
                             game_rank=rank
@@ -585,7 +624,10 @@ async def save_rank(message: Message, state: FSMContext):
                     await message.answer("Вернуться к проверке анкеты?", 
                                                         reply_markup=await get_back_to_check_kb())
                 else:
-                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                    await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                    await state.clear()
+
             elif data["process"] == "adding_new_game":
                 await state.update_data(
                 game_rank=rank
@@ -633,7 +675,10 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                         await message.answer("Вернуться к проверке анкеты?", 
                                                             reply_markup=await get_back_to_check_kb())
                     else:
-                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                        await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                        await state.clear()
+
                 elif data["process"] == "adding_new_game":
                     await repository.create_game(
                         user_id=message.from_user.id,
@@ -661,9 +706,11 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                         await message.answer("Вернуться к проверке анкеты?", 
                                                             reply_markup=await get_back_to_check_kb())
                     else:
-                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu())
+                        await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                        await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                        await state.clear()
+
                 elif data["process"] == "adding_new_game":
-                    print(game, rank)
                     await repository.create_game(
                         user_id=message.from_user.id,
                         name=game,
@@ -681,9 +728,14 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.delete()
+
     game = callback.data.split("_")[-1]
     await repository.delete_game(callback.from_user.id, game)
-    await callback.message.answer(f"Игра {game} была удалена.", reply_markup=await get_back_to_menu())
+
+    await callback.message.answer(f"Игра {game} была удалена.", reply_markup=ReplyKeyboardRemove())
+    await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+    await state.clear()
+
 
 
 

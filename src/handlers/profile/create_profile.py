@@ -41,6 +41,12 @@ TEXT_WARCRAFT_MODE = "Выбери режим из списка, в которо
 TEXT_NUM_RANK = "Введи силу аккаунта числом:"
 TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
 TEXT_TIME = "Выбери, пожалуйста, удобное время для игры по МСК:"
+TEXT_RSL = """
+Введи силу аккаунта в миллионах 🌟
+Если сила меньше 1 млн — впиши дробное значение.
+
+Пример: 500 000 тыс = 0,5 млн
+"""
 
 # В хендлерах замените вызовы клавиатур на:
 
@@ -170,7 +176,10 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
         else:
-            await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+            if game == "Raid Shadow Legends":
+                await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
+            else:
+                await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
             await state.set_state(ProfileForm.rank)
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_game_kb(with_back=True))

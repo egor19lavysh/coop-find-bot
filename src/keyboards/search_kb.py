@@ -88,11 +88,11 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
 async def get_search_type_kb() -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
-            text="Анкеты игроков", 
+            text="Анкеты игроков🗡️", 
             callback_data="search_type_profiles"
         )],
         [InlineKeyboardButton(
-            text="Кланы", 
+            text="🛡️ Кланы 🛡️", 
             callback_data="search_type_clans"
         )],
         [
