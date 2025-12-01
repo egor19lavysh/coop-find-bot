@@ -56,6 +56,8 @@ TEXT_RSL = """
 
 Пример: 500 000 тыс = 0,5 млн
 """
+TEXT_PHOTO_COUNT_ERROR = "Пришлите 1 фотографию"
+TEXT_BACK = "back"
 
 
 @router.callback_query(F.data == "edit_profile")
@@ -167,7 +169,7 @@ async def update_telegram_tag(message: Message, state: FSMContext):
             telegram_tag = message.text
         
         await repository.update_telegram_tag(user_id=message.from_user.id, telegram_tag=telegram_tag)
-        data = await state.get_data(telegram_tag=telegram_tag)
+        data = await state.update_data(telegram_tag=telegram_tag)
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data()
             await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
@@ -181,59 +183,70 @@ async def update_telegram_tag(message: Message, state: FSMContext):
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
-@router.message(EditProfileForm.gender)
+@router.callback_query(EditProfileForm.gender)
 @require_profile
-async def update_gender(message: Message, state: FSMContext):
-    if message.text:
-        if message.text == "Пропустить":
+async def update_gender(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    text = callback.data.split("_")[-1]
+
+    if text:
+        if text == "skip":
             gender = None
-        elif message.text in GENDER_LIST:
-            gender = message.text
+        elif text in GENDER_LIST:
+            gender = text
         else:
-            await message.answer(TEXT_WRONG_ANSWER)
+            await callback.message.answer(TEXT_WRONG_ANSWER)
             return
         
-        await repository.update_gender(user_id=message.from_user.id, gender=gender)
+        await repository.update_gender(user_id=callback.message.from_user.id, gender=gender)
         data = await state.get_data()
         if "process" in data and data["process"] == "creating_profile":
             await state.update_data(gender=gender)
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-            await message.answer("Вернуться к проверке анкеты?", 
+            await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await callback.message.answer("Вернуться к проверке анкеты?", 
                         reply_markup=await get_back_to_check_kb())
+            await state.set_state(EditProfileForm.clear)
         else:
-            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+            await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+            await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
             await state.clear()
 
     else:
-        await message.answer(TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(TEXT_ANSWER_TYPE_ERROR)
 
-@router.message(EditProfileForm.time)
+@router.callback_query(EditProfileForm.time)
 @require_profile
-async def update_time(message: Message, state: FSMContext):
+async def update_time(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
     data = await state.get_data()
     time = data["time"]
 
-    if message.text:
-        if message.text in CONVENIENT_TIME:
-            if message.text not in time:
-                time.append(message.text)
+    if text:
+        if text in CONVENIENT_TIME:
+            if text not in time:
+                time.append(text)
                 await state.update_data(time=time)
-                await message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(True))
+                await callback.message.edit_text(f"Выбрано время: {text}", reply_markup=None)
+                await callback.message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(EditProfileForm.add_new_time)
             else:
-                await message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb())
+                await callback.message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb(with_back=True))
         else:
-            await message.answer(text="Выбери промежуток времени из списка.")
+            await callback.message.answer(text="Выбери промежуток времени из списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb())
-
-@router.message(EditProfileForm.add_new_time)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb(with_back=True))
+    
+@router.callback_query(EditProfileForm.add_new_time)
 @require_profile
-async def add_new_time(message: Message, state: FSMContext):
+async def add_new_time(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    await callback.answer()
+    await callback.message.delete()
+    text = callback.data.split("_")[-1]
 
-    if message.text == TEXT_BACK:
+    if text == TEXT_BACK:
         data = await state.get_data()
         time = data["time"]
         
@@ -242,36 +255,37 @@ async def add_new_time(message: Message, state: FSMContext):
             await state.update_data(time=time)
             
             if time:  # Если остались игры, возвращаемся к выбору добавления
-                await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(False))
+                await callback.message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(EditProfileForm.add_new_time)
             else:  # Если игр не осталось, возвращаемся к выбору первой игры
-                await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb())
+                await callback.message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=False))
                 await state.set_state(EditProfileForm.time)
         return
-
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb())
+    
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=False))
             await state.set_state(EditProfileForm.time)
-        elif message.text == "Нет":
+        elif text == "Нет":
             time = data["time"]
-            await repository.update_time(user_id=message.from_user.id, time=time)
+            await repository.update_time(user_id=callback.from_user.id, time=time)
 
             if "process" in data and data["process"] == "creating_profile":
                 await state.update_data(time=time)
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                await message.answer("Вернуться к проверке анкеты?", 
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())
+                await state.set_state(EditProfileForm.clear)
             else:
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
                 await state.clear()
 
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
             await state.set_state(EditProfileForm.add_new_time)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb())
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb())
         await state.set_state(EditProfileForm.add_new_time)
 
 @router.message(EditProfileForm.about)
@@ -293,54 +307,65 @@ async def update_about(message: Message, state: FSMContext):
     else:
         await message.answer(TEXT_ANSWER_TYPE_ERROR)
 
-@router.message(EditProfileForm.goal)
+@router.callback_query(EditProfileForm.goal)
 @require_profile
-async def update_goal(message: Message, state: FSMContext):
+async def update_goal(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+
     data = await state.get_data()
     goals = data["goals"]
 
-    if message.text:
-        if message.text in GOALS_LIST:
-            if message.text not in goals:
-                goals.append(message.text)
+    if text:
+        if text in GOALS_LIST:
+            if callback.message.text not in goals:
+                goals.append(text)
                 await state.update_data(goals=goals)
-                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(False))
+                await callback.message.edit_text(f"Выбрана цель: {text}", reply_markup=None)
+                await callback.message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(False))
                 await state.set_state(EditProfileForm.add_new_goal)
             else:
-                await message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb())
+                await callback.message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb(with_back=False))
         else:
-            await message.answer(text="Выбери цель из списка.")
+            await callback.message.answer(text="Выбери цель из списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb())
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb(with_back=False))
 
-@router.message(EditProfileForm.add_new_goal)
+@router.callback_query(EditProfileForm.add_new_goal)
 @require_profile
-async def add_new_goal(message: Message, state: FSMContext):
+async def add_new_goal(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    await callback.answer()
+    text = callback.data.split("_")[-1]
 
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_EDIT_GOAL, reply_markup=await get_goals_kb())
+    await callback.message.delete()
+
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_EDIT_GOAL, reply_markup=await get_goals_kb(with_back=False))
             await state.set_state(EditProfileForm.goal)
-        elif message.text == "Нет":
+        elif text == "Нет":
             goals = data["goals"]
-            await repository.update_goal(user_id=message.from_user.id, goals=goals)
+            await repository.update_goal(user_id=callback.from_user.id, goals=goals)
+            print(goals)
 
             if "process" in data and data["process"] == "creating_profile":
                 await state.update_data(goals=goals)
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                await message.answer("Вернуться к проверке анкеты?", 
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer("Вернуться к проверке анкеты?", 
                             reply_markup=await get_back_to_check_kb())
+                await state.set_state(EditProfileForm.clear)
+                
             else:
-                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
                 await state.clear()
 
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb())
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
             await state.set_state(EditProfileForm.add_new_goal)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb())
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
         await state.set_state(EditProfileForm.add_new_goal)
 
 
@@ -348,6 +373,7 @@ async def add_new_goal(message: Message, state: FSMContext):
 @router.message(EditProfileForm.photo)
 @require_profile
 async def update_photo(message: Message, state: FSMContext):
+    data = await state.get_data()
     if message.text:
         if message.text == "Фото с профиля":
             photos = await message.bot.get_user_profile_photos(message.from_user.id)
@@ -361,13 +387,23 @@ async def update_photo(message: Message, state: FSMContext):
             await message.answer(TEXT_PHOTO_ERROR)
             return
     elif message.photo:
+        # Проверяем, является ли это частью альбома
+        if message.media_group_id:
+            if data.get("msg_group_id", "") != message.media_group_id:
+                await message.answer(TEXT_PHOTO_COUNT_ERROR, reply_markup=await get_photo_kb(with_back=True))
+                await state.update_data(
+                    msg_group_id=message.media_group_id
+                )
+                return
+            else:
+                return
+
+        # Берём самую большую версию фото
         photo = message.photo[-1].file_id
-    else:
-        await message.answer(TEXT_PHOTO_ERROR)
-        return
     
     await repository.update_photo(user_id=message.from_user.id, photo=photo)
     data = await state.get_data()
+
     if "process" in data and data["process"] == "creating_profile":
         await state.update_data(photo=photo)
         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
@@ -475,17 +511,19 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
         await state.set_state(EditProfileForm.rank)
 
-@router.message(EditProfileForm.add_warcraft_mode)
-async def save_mode(message: Message, state: FSMContext):
-    if message.text:
-        if message.text in WARCRAFT_MODES + ["Пропустить"]:
+@router.callback_query(EditProfileForm.add_warcraft_mode)
+async def save_mode(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+    if text:
+        if text in WARCRAFT_MODES + ["skip"]:
             data = await state.get_data()
             rank = data["game_rank"]
             game = data["game"]
 
-            if message.text not in rank:
+            if text not in rank:
 
-                if message.text == "Пропустить":
+                if text == "skip":
                     if rank:
                         rank += ""
                     else:
@@ -494,38 +532,40 @@ async def save_mode(message: Message, state: FSMContext):
                     
                     if "process" in data:
                         if data["process"] in ("editing_rank", "creating_profile"):
-                            await repository.update_game_rank(user_id=message.from_user.id, game=game, rank=rank)
+                            await repository.update_game_rank(user_id=callback.from_user.id, game=game, rank=rank)
                             if data["process"] == "creating_profile":
-                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                                await message.answer("Вернуться к проверке анкеты?", 
+                                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                                await callback.message.answer("Вернуться к проверке анкеты?", 
                                                         reply_markup=await get_back_to_check_kb())
+                                await state.set_state(EditProfileForm.clear)
+                                
                             else:
-                                await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                                await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                                await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
                                 await state.clear()
 
                         elif data["process"] == "adding_new_game":
                             await state.update_data(
                             game_rank=rank
                             )
-                            await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+                            await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
                             await state.set_state(EditProfileForm.gallery)
                     else:
-                        await message.answer("Произошла какая-то ошибка...")
+                        await callback.message.answer("Произошла какая-то ошибка...")
                 else:
-                    mode = message.text
+                    mode = text
                     await state.update_data(mode=mode)
                     is_pve = mode == "PvE"
 
-                    await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
+                    await callback.message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
                     await state.set_state(EditProfileForm.add_warcraft_rank)
             else:
-                await message.answer("Вы уже выбрали этот режим. Выберите другой.")
+                await callback.message.answer("Вы уже выбрали этот режим. Выберите другой.")
 
         else:
-            await message.answer("Выберите режим из предложенного списка.")
+            await callback.message.answer("Выберите режим из предложенного списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
 
 @router.callback_query(EditProfileForm.add_warcraft_rank)
 async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
@@ -596,48 +636,52 @@ async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.message(EditProfileForm.rank)
-async def save_rank(message: Message, state: FSMContext):
+@router.callback_query(EditProfileForm.rank)
+async def save_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
 
     data = await state.get_data()
     game = data["game"]
     
-    if message.text:
-        if message.text == "Пропустить":
+    if text:
+        if text == "Пропустить":
             rank = None
         else:
-            rank = message.text
+            rank = text
             if game in ["Raid Shadow Legends", "WoR"]:
                 try:
                     float(rank)
                 except Exception:
-                    await message.answer("Введите численное значение!")
+                    await callback.message.answer("Введите численное значение!")
                     return 
 
             
 
         if "process" in data:
             if data["process"] in ("editing_rank", "creating_profile"):
-                await repository.update_game_rank(user_id=message.from_user.id, game=game, rank=rank)
+                await repository.update_game_rank(user_id=callback.from_user.id, game=game, rank=rank)
                 if data["process"] == "creating_profile":
-                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                    await message.answer("Вернуться к проверке анкеты?", 
+                    await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                    await callback.message.answer("Вернуться к проверке анкеты?", 
                                                         reply_markup=await get_back_to_check_kb())
+                    await state.set_state(EditProfileForm.clear)
+                    
                 else:
-                    await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
-                    await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                    await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                    await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
                     await state.clear()
 
             elif data["process"] == "adding_new_game":
                 await state.update_data(
                 game_rank=rank
                 )
-                await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+                await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
                 await state.set_state(EditProfileForm.gallery)
         else:
-            await message.answer("Произошла какая-то ошибка...")
+            await callback.message.answer("Произошла какая-то ошибка...")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(EditProfileForm.rank)
 
 @router.callback_query(F.data.startswith("edit_gallery_"))
@@ -663,17 +707,45 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
     game = data["game"]
     rank = data.get("game_rank", "")
     
-    if message.media_group_id and message.photo:
+    if message.photo:
 
-        if len(album) <= 10:
+        if album:
 
+            if len(album) <= 10:
+
+                if "process" in data:
+                    if data["process"] in ("editing_gallery", "creating_profile"):
+                        await repository.update_game_gallery(user_id=message.from_user.id, game=game, gallery=[photo.photo[-1].file_id for photo in album])
+                        if data["process"] == "creating_profile":
+                            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                            await message.answer("Вернуться к проверке анкеты?", 
+                                                                reply_markup=await get_back_to_check_kb())
+                            await state.set_state(EditProfileForm.clear)
+                            
+                        else:
+                            await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                            await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                            await state.clear()
+
+                    elif data["process"] == "adding_new_game":
+                        await repository.create_game(
+                            user_id=message.from_user.id,
+                            name=game,
+                            rank=rank,
+                            gallery=[photo.photo[-1].file_id for photo in album]
+                        )
+                        await message.answer(f"Игра {game} успешно добавлена!", reply_markup=await get_back_to_menu())
+                        await state.clear()
+        else:
             if "process" in data:
                 if data["process"] in ("editing_gallery", "creating_profile"):
-                    await repository.update_game_gallery(user_id=message.from_user.id, game=game, gallery=[photo.photo[-1].file_id for photo in album])
+                    await repository.update_game_gallery(user_id=message.from_user.id, game=game, gallery=[message.photo[-1].file_id])
                     if data["process"] == "creating_profile":
                         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
                         await message.answer("Вернуться к проверке анкеты?", 
-                                                            reply_markup=await get_back_to_check_kb())
+                                                                reply_markup=await get_back_to_check_kb())
+                        await state.set_state(EditProfileForm.clear)
+                        
                     else:
                         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
                         await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
@@ -681,19 +753,16 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 
                 elif data["process"] == "adding_new_game":
                     await repository.create_game(
-                        user_id=message.from_user.id,
-                        name=game,
-                        rank=rank,
-                        gallery=[photo.photo[-1].file_id for photo in album]
-                    )
+                            user_id=message.from_user.id,
+                            name=game,
+                            rank=rank,
+                            gallery=[message.photo[-1].file_id]
+                        )
                     await message.answer(f"Игра {game} успешно добавлена!", reply_markup=await get_back_to_menu())
                     await state.clear()
                     
             else:
                 await message.answer("Произошла какая-то ошибка...")
-        else:
-            await message.answer("Отправьте до 10 фотографий.")
-            return
         
     elif message.text:
         if message.text == "Пропустить":
@@ -705,6 +774,8 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
                         await message.answer("Вернуться к проверке анкеты?", 
                                                             reply_markup=await get_back_to_check_kb())
+                        await state.set_state(EditProfileForm.clear)
+                        
                     else:
                         await message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
                         await message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())

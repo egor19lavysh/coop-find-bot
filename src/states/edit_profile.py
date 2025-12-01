@@ -20,6 +20,7 @@ class EditProfileForm(StatesGroup):
     add_new_goal = State()
     photo = State()
     is_active = State()
+    clear = State()
 
 
 

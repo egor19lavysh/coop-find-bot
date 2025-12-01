@@ -36,7 +36,7 @@ TEXT_REJECTED = "\n\nОтклонено ❌"
 TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы можешь ее удалить или изменить"
 IS_PROFILE_OK = "Все верно?"
 TEXT_ADD_GAME = "Добавить еще игру?"
-TEXT_BACK = "Назад"
+TEXT_BACK = "back"
 TEXT_WARCRAFT_MODE = "Выбери режим из списка, в котором хочешь указать рейтинг:"
 TEXT_NUM_RANK = "Введи силу аккаунта числом:"
 TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
@@ -116,28 +116,33 @@ async def save_telegram_tag(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)
 
-@router.message(ProfileForm.gender)
-async def save_gender(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_TAG, reply_markup=await get_tag_kb())
+@router.callback_query(ProfileForm.gender)
+async def save_gender(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+
+    if text == TEXT_BACK:
+        await callback.message.answer(text=TEXT_TAG, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)
         return
     
-    if message.text:
-        if message.text == "Пропустить":
+    if text:
+        if text == "skip":
             await state.update_data(gender=None)
         else:
-            if message.text in GENDER_LIST:
-                await state.update_data(gender=message.text)
+            if text in GENDER_LIST:
+                await state.update_data(gender=text)
             else:
-                await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_gender_keyboard())
+                await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_gender_keyboard())
                 await state.set_state(ProfileForm.gender)
                 return
+
+        await callback.message.edit_text(text=TEXT_GENDER + f"\nВыбрано: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
         
-        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_gender_keyboard())
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_gender_keyboard())
         await state.set_state(ProfileForm.gender)
 
 @router.callback_query(ProfileForm.game)
@@ -181,25 +186,29 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
             else:
                 await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
             await state.set_state(ProfileForm.rank)
+
+        await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
 
-@router.message(ProfileForm.add_warcraft_mode)
-async def save_mode(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+@router.callback_query(ProfileForm.add_warcraft_mode)
+async def save_mode(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+    if text == TEXT_BACK:
+        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
         return
     
-    if message.text:
-        if message.text in WARCRAFT_MODES + ["Пропустить"]:
+    if text:
+        if text in WARCRAFT_MODES + ["skip"]:
             data = await state.get_data()
             rank = data["game_rank"]
 
-            if message.text not in rank:
+            if text not in rank:
 
-                if message.text == "Пропустить":
+                if text == "skip":
                     if rank:
                         rank += ""
                     else:
@@ -209,23 +218,25 @@ async def save_mode(message: Message, state: FSMContext):
                         game_rank=rank
                     )
 
-                    await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+                    await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
                     await state.set_state(ProfileForm.gallery)
 
                 else:
-                    mode = message.text
+                    mode = text
                     await state.update_data(mode=mode)
                     is_pve = mode == "PvE"
 
-                    await message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
+                    await callback.message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
                     await state.set_state(ProfileForm.add_warcraft_rank)
+
+                await callback.message.edit_text(f"Выбран режим: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
             else:
-                await message.answer("Вы уже выбрали этот режим. Выберите другой.")
+                await callback.message.answer("Вы уже выбрали этот режим. Выберите другой.")
 
         else:
-            await message.answer("Выберите режим из предложенного списка.")
+            await callback.message.answer("Выберите режим из предложенного списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
 
 @router.callback_query(ProfileForm.add_warcraft_rank)
 async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
@@ -278,6 +289,8 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
             game_rank=new_rank
         )
     
+    await callback.message.edit_text(f"Выбран ранг: {rank}", reply_markup=None)
+    
     await callback.message.answer("Выбери режим из списка, в котором хочешь указать рейтинг:", reply_markup=await get_warcraft_modes_kb(True))
     await state.set_state(ProfileForm.add_warcraft_mode)
 
@@ -295,43 +308,49 @@ async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
     
     await callback.answer()
 
-@router.message(ProfileForm.add_new_warcraft_rank)
-async def add_new_warcraft_rank(message: Message, state: FSMContext):
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
+@router.callback_query(ProfileForm.add_new_warcraft_rank)
+async def add_new_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+    await callback.message.delete()
+
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
-        elif message.text == "Нет":
-            await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+        elif text == "Нет":
+            await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_game)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
             await state.set_state(ProfileForm.add_new_warcraft_rank)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
         await state.set_state(ProfileForm.add_new_warcraft_rank)
 
 
-@router.message(ProfileForm.rank)
-async def save_rank(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+@router.callback_query(ProfileForm.rank)
+async def save_rank(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+    if text == TEXT_BACK:
+        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
         return
     
     data = await state.get_data()
     game = data["game"]
     
-    if message.text:
-        if message.text == "Пропустить":
-            rank = None
+    if text:
+        if text == "skip":
+            rank = ""
         else:
-            rank = message.text
+            rank = text
             if game in ["Raid Shadow Legends", "WoR"]:
                 try:
                     float(rank)
                 except Exception:
-                    await message.answer("Введите численное значение!")
+                    await callback.message.answer("Введите численное значение!")
                     return 
 
             
@@ -339,11 +358,11 @@ async def save_rank(message: Message, state: FSMContext):
         await state.update_data(
             game_rank=rank
         )
-        
-        await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await callback.message.edit_text(f"Выбран ранг: {rank if rank != 'skip' else 'Пропустить'}", reply_markup=None)
+        await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.gallery)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.rank)
 
 @router.message(ProfileForm.gallery)
@@ -353,26 +372,40 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
     game = data["game"]
     rank = data["game_rank"]
     
-    if message.media_group_id and message.photo:
+    if message.photo:
 
-        if len(album) <= 10:
+        if album:
+            if len(album) <= 10:
 
+                games[game] = {
+                    "rank": rank,
+                    "gallery": [photo.photo[-1].file_id for photo in album]
+                }
+
+                await state.update_data(
+                    games=games,
+                    game=game,
+                    game_rank=rank
+                )
+            
+                await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+                await state.set_state(ProfileForm.add_new_game)
+            else:
+                await message.answer("Отправьте до 10 фотографий.")
+                return
+        else:
             games[game] = {
-                "rank": rank,
-                "gallery": [photo.photo[-1].file_id for photo in album]
-            }
-
+                    "rank": rank,
+                    "gallery": [message.photo[-1].file_id]
+                }
             await state.update_data(
-                games=games,
-                game=game,
-                game_rank=rank
-            )
-        
+                    games=games,
+                    game=game,
+                    game_rank=rank
+                )
+            
             await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_game)
-        else:
-            await message.answer("Отправьте до 10 фотографий.")
-            return
         
     elif message.text:
         if message.text == "Пропустить":
@@ -406,69 +439,66 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 
         
 
-@router.message(ProfileForm.add_new_game)
-async def add_new_game(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
+@router.callback_query(ProfileForm.add_new_game)
+async def add_new_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    text = callback.data.split("_")[-1]
+    if text == TEXT_BACK:
         data = await state.get_data()
-        games = data["games"]
         
-        # if games:
-        #     # Удаляем последнюю добавленную игру
-        #     last_game = list(games.keys())[-1]
-        #     del games[last_game]
-        #     await state.update_data(games=games)
-            
-        #     if games:  # Если остались игры, возвращаемся к выбору добавления
-        #         await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-        #         await state.set_state(ProfileForm.add_new_game)
-        #     else:  # Если игр не осталось, возвращаемся к выбору первой игры
-        #         await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
-        #         await state.set_state(ProfileForm.game)
-        await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.gallery)
         return
     
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
             await state.set_state(ProfileForm.game)
-        elif message.text == "Нет":
-            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(True))
+        elif text == "Нет":
+            await callback.message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(True))
             await state.set_state(ProfileForm.time)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_game)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
 
-@router.message(ProfileForm.time)
-async def save_time(message: Message, state: FSMContext):
+@router.callback_query(ProfileForm.time)
+async def save_time(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
     data = await state.get_data()
     time = data["time"]
 
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+    if text == TEXT_BACK:
+        await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
         return
     
-    if message.text:
-        if message.text in CONVENIENT_TIME:
-            if message.text not in time:
-                time.append(message.text)
+    if text:
+        if text in CONVENIENT_TIME:
+            if text not in time:
+                time.append(text)
                 await state.update_data(time=time)
-                await message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(with_back=True))
+                await callback.message.edit_text(f"Выбрано время: {text}", reply_markup=None)
+                await callback.message.answer(text="Добавить еще промежуток время?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(ProfileForm.add_new_time)
             else:
-                await message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb(with_back=True))
+                await callback.message.answer("Вы уже выбрали этот промежуток времени. Теперь выберите другой:", reply_markup=await get_time_kb(with_back=True))
         else:
-            await message.answer(text="Выбери промежуток времени из списка.")
+            await callback.message.answer(text="Выбери промежуток времени из списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb(with_back=True))
 
-@router.message(ProfileForm.add_new_time)
-async def add_new_time(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
+@router.callback_query(ProfileForm.add_new_time)
+async def add_new_time(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    text = callback.data.split("_")[-1]
+
+    if text == TEXT_BACK:
         data = await state.get_data()
         time = data["time"]
         
@@ -477,25 +507,25 @@ async def add_new_time(message: Message, state: FSMContext):
             await state.update_data(time=time)
             
             if time:  # Если остались игры, возвращаемся к выбору добавления
-                await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
+                await callback.message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(ProfileForm.add_new_time)
             else:  # Если игр не осталось, возвращаемся к выбору первой игры
-                await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
+                await callback.message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
                 await state.set_state(ProfileForm.time)
         return
     
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_TIME, reply_markup=await get_time_kb(with_back=True))
             await state.set_state(ProfileForm.time)
-        elif message.text == "Нет":
-            await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
+        elif text == "Нет":
+            await callback.message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
             await state.set_state(ProfileForm.about)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_time)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_time)
 
 @router.message(ProfileForm.about)
@@ -513,34 +543,43 @@ async def save_about(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.about)
 
-@router.message(ProfileForm.goal)
-async def save_goal(message: Message, state: FSMContext):
+@router.callback_query(ProfileForm.goal)
+async def save_goal(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+
     data = await state.get_data()
     goals = data["goals"]
 
-    if message.text == TEXT_BACK:
-        await message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
+    if text == TEXT_BACK:
+        await callback.message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
         await state.update_data(goals=[])
         await state.set_state(ProfileForm.about)
         return
     
-    if message.text:
-        if message.text in GOALS_LIST:
-            if message.text not in goals:
-                goals.append(message.text)
+    if text:
+        if text in GOALS_LIST:
+            if callback.message.text not in goals:
+                goals.append(text)
                 await state.update_data(goals=goals)
-                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
+                await callback.message.edit_text(f"Выбрана цель: {text}", reply_markup=None)
+                await callback.message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(ProfileForm.add_new_goal)
             else:
-                await message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb(with_back=True))
+                await callback.message.answer("Вы уже выбрали эту цель. Теперь выберите другую:", reply_markup=await get_goals_kb(with_back=True))
         else:
-            await message.answer(text="Выбери цель из списка.")
+            await callback.message.answer(text="Выбери цель из списка.")
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb(with_back=True))
 
-@router.message(ProfileForm.add_new_goal)
-async def add_new_goal(message: Message, state: FSMContext):
-    if message.text == TEXT_BACK:
+@router.callback_query(ProfileForm.add_new_goal)
+async def add_new_goal(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+
+    await callback.message.delete()
+
+    if text == TEXT_BACK:
         data = await state.get_data()
         goals = data["goals"]
         
@@ -549,25 +588,25 @@ async def add_new_goal(message: Message, state: FSMContext):
             await state.update_data(goals=goals)
             
             if goals:
-                await message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
+                await callback.message.answer(text="Добавить еще цель?", reply_markup=await get_confirmation_kb(with_back=True))
                 await state.set_state(ProfileForm.add_new_goal)
             else:
-                await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
+                await callback.message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
                 await state.set_state(ProfileForm.goal)
         return
     
-    if message.text:
-        if message.text == "Да":
-            await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
+    if text:
+        if text == "Да":
+            await callback.message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
             await state.set_state(ProfileForm.goal)
-        elif message.text == "Нет":
-            await message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
+        elif text == "Нет":
+            await callback.message.answer(text=TEXT_PHOTO, reply_markup=await get_photo_kb(with_back=True))
             await state.set_state(ProfileForm.photo)
         else:
-            await message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
+            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_goal)
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_goal)
     
 

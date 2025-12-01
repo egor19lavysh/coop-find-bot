@@ -23,7 +23,7 @@ TEXT_PHOTO_UPDATED = "Фото профиля обновлено."
 TEXT_PHOTO_ERROR = 'Пришлите фотографию профиля!'
 TEXT_PROFILE_DEACTIVATED = "Твоя анкета снята с поиска. Ты сможешь ее разместить в любой момент."
 TEXT_PROFILE_ACTIVATED = "Твоя анкета успешно размещена. Теперь ее видят другие пользователи."
-TEXT_YOUR_CHOICE = "Ты уверен? Знай, это твой выбор\n"
+TEXT_YOUR_CHOICE = "Анкета {name}"
 TEXT_GALLERY = """
 ✨ Галерея игрока «{name}».
 Тут находится результат его игры: его лут, сила аккаунта, персонажи, соборки и многое другое.
@@ -97,7 +97,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext):
         else:
             keyboard = await get_back_to_menu()
             
-        prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
+        prefix = TEXT_YOUR_CHOICE.format(name=profile.nickname) if type_user == "other" else ""
 
         profile_text = prefix + FULL_PROFILE_SAMPLE.format(
             nickname=profile.nickname,

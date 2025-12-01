@@ -24,19 +24,17 @@ async def get_back_kb() -> ReplyKeyboardMarkup:
         one_time_keyboard=True
     )
 
-async def get_gender_keyboard(with_back: bool = True) -> ReplyKeyboardMarkup:
+async def get_gender_keyboard(with_back: bool = True) -> InlineKeyboardMarkup:
     buttons = [
-        [KeyboardButton(text="Мужской")],
-        [KeyboardButton(text="Женский")],
-        [KeyboardButton(text="Пропустить")]
+        [InlineKeyboardButton(text="Мужской", callback_data="gender_Мужской")],
+        [InlineKeyboardButton(text="Женский", callback_data="gender_Женский")],
+        [InlineKeyboardButton(text="Пропустить", callback_data="gender_skip")]
     ]
     if with_back:
-        buttons.append([KeyboardButton(text=TEXT_BACK)])
+        buttons.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"gender_back")])
         
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True,
-        one_time_keyboard=True
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=buttons
     )
     return keyboard
 
@@ -67,16 +65,16 @@ async def get_photo_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
 
-async def get_confirmation_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
+async def get_confirmation_kb(with_back: bool = True) -> InlineKeyboardMarkup:
     buttons = [
-        [KeyboardButton(text="Да")],
-        [KeyboardButton(text="Нет")]
+        [InlineKeyboardButton(text="Да", callback_data="confirm_Да")],
+        [InlineKeyboardButton(text="Нет", callback_data="confirm_Нет")]
     ]
     
     if with_back:
-        buttons.append([KeyboardButton(text=TEXT_BACK)])
+        buttons.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"confirm_back")])
     
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 async def get_tag_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
     buttons = [
@@ -220,38 +218,40 @@ async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMark
                                                 )]              
                                                   ])
 
-async def get_goals_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
-    btns = [[KeyboardButton(text=goal)] for goal in GOALS_LIST]
+async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    buttons = [[InlineKeyboardButton(text=goal, callback_data=f"goal_{goal}")] for goal in GOALS_LIST]
     if with_back:
-        btns.append([KeyboardButton(text=TEXT_BACK)])
-    return ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)
+        buttons.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"goals_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 
-
-async def get_ranks_kb(game: str, with_back: bool = False) -> ReplyKeyboardMarkup:
+async def get_ranks_kb(game: str, with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []
     if game in GAMES_RANKS:
         for rank in GAMES_RANKS[game]:
-            keyboard.append([KeyboardButton(text=rank)])
+            keyboard.append([InlineKeyboardButton(text=rank, callback_data=f"rank_{rank}")])
     
-    keyboard.append([KeyboardButton(text="Пропустить")])
+    keyboard.append([InlineKeyboardButton(text="Пропустить", callback_data=f"rank_skip")])
 
     if with_back:
-        keyboard.append([KeyboardButton(text="Назад")])
-    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+        keyboard.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"rank_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
         
 
-async def get_warcraft_modes_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
+async def get_warcraft_modes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []
     for mode in WARCRAFT_MODES:
-        keyboard.append([KeyboardButton(text=mode)])
+        keyboard.append([InlineKeyboardButton(text=mode, callback_data=f"mode_{mode}")])
     
-    keyboard.append([KeyboardButton(text="Пропустить")])
+    keyboard.append([InlineKeyboardButton(text="Пропустить", callback_data="mode_skip")])
 
     if with_back:
-        keyboard.append([KeyboardButton(text="Назад")])
-    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True)
+        keyboard.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"mode_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # async def get_warcraft_ranks_kb(is_pve: bool = False) -> InlineKeyboardMarkup:
 #     builder = InlineKeyboardBuilder()
@@ -329,11 +329,13 @@ async def get_warcraft_ranks_kb(is_pve: bool = False, page=0, per_page=18):
     return builder.as_markup()
 
 
-async def get_time_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
-    kb = [[KeyboardButton(text=time)] for time in CONVENIENT_TIME]
+async def get_time_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    kb = [[InlineKeyboardButton(text=time, callback_data=f"time_{time}")] for time in CONVENIENT_TIME]
+
     if with_back:
-        kb.append([KeyboardButton(text="Назад")])
-    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
+        kb.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"time_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=kb)
 
 async def get_edit_games_kb(games: list[Game], process: str = "", new_game: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
