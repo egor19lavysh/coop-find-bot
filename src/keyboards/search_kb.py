@@ -214,7 +214,7 @@ async def get_game_inline_kb() -> InlineKeyboardMarkup:
     
     for game in GAME_LIST:
         builder.add(InlineKeyboardButton(
-            text=game,
+            text=GAME_LIST[game],
             callback_data=f"get_profiles_by_{game}"
         ))
     
@@ -256,7 +256,7 @@ async def get_games_filter_search_kb() -> InlineKeyboardMarkup:
     
     for game in GAME_LIST:
         builder.add(InlineKeyboardButton(
-            text=game,
+            text=GAME_LIST[game],
             callback_data=f"filter_game_{game}"
         ))
     
@@ -277,9 +277,9 @@ async def get_games_filter_search_kb() -> InlineKeyboardMarkup:
 #         keyboard.append([KeyboardButton(text="Назад")])
 #     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
-async def get_goals_kb(with_back: bool = False) -> ReplyKeyboardMarkup:
-    btns = [[KeyboardButton(text=goal)] for goal in GOALS_LIST]
-    btns.append([KeyboardButton(text="Пропустить")])
+async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    btns = [[InlineKeyboardButton(text=goal, callback_data=f"goal_{goal}")] for goal in GOALS_LIST]
+    btns.append([InlineKeyboardButton(text="Пропустить", callback_data="goal_skip")])
     if with_back:
-        btns.append([KeyboardButton(text="Назад")])
-    return ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True, one_time_keyboard=True)
+        btns.append([InlineKeyboardButton(text="Назад", callback_data="goal_back")])
+    return InlineKeyboardMarkup(inline_keyboard=btns)

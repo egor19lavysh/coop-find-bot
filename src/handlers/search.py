@@ -492,59 +492,66 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
         await state.set_state(SearchForm.rank)
 
 
-@router.message(SearchForm.rank)
-async def save_rank(message: Message, state: FSMContext):
+@router.callback_query(SearchForm.rank)
+async def save_rank(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     game = data["game"]
 
-    if message.text:
-        if message.text == "Назад":
-            await message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
+    text = callback.data.split("_")[-1]
+    await callback.message.delete()
+
+    if text:
+        if text == "back":
+            await callback.message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
             await state.set_state(SearchForm.game)
             return 
 
-        elif message.text == "Пропустить":
+        elif text == "skip":
             await state.update_data(rank=None)
 
-        elif message.text in GAMES_RANKS:
-            await state.update_data(rank=message.text)
+        elif text in GAMES_RANKS:
+            await state.update_data(rank=text)
         elif game in ["Raid Shadow Legends", "WoR"]:
             try:
-                float(message.text)
+                float(text)
             except Exception:
-                await message.answer("Введите численное значение!")
+                await callback.message.answer("Введите численное значение!")
                 return
 
             await state.update_data(
-                rank=message.text
+                rank=text
             )
 
-        await message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+        await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
         await state.set_state(SearchForm.goal)
 
-@router.message(SearchForm.warcraft_mode)
-async def save_mode(message: Message, state: FSMContext):
-    if message.text:
-        if message.text in WARCRAFT_MODES:
+@router.callback_query(SearchForm.warcraft_mode)
+async def save_mode(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    text = callback.data.split("_")[-1]
+    await callback.message.delete()
+
+    if text:
+        if text in WARCRAFT_MODES:
             await state.update_data(
-                mode=message.text
+                mode=text
             )
-            is_pve = message.text == "PvE"
-            await message.answer("Выберите рейтинг:", reply_markup = await get_warcraft_ranks_kb(is_pve=is_pve))
+            is_pve = text == "PvE"
+            await callback.message.answer("Выберите рейтинг:", reply_markup = await get_warcraft_ranks_kb(is_pve=is_pve))
             await state.set_state(SearchForm.warcraft_rank)
-        elif message.text == "Пропустить":
+        elif text == "skip":
             await state.update_data(
                 rank=None
             )
-            await message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+            await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
             await state.set_state(SearchForm.goal)
-        elif message.text == "Назад":
-            await message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
+        elif text == "back":
+            await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(SearchForm.warcraft_mode)
         else:
-            await message.answer("Выберите ответ из списка!")
+            await callback.message.answer("Выберите ответ из списка!")
     else:
-        await message.answer("Ответьте текстом!")
+        await callback.message.answer("Ответьте текстом!")
 
 
 @router.callback_query(SearchForm.warcraft_rank)
@@ -569,7 +576,7 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
             ranks = WARCRAFT_PvE if is_pve else WARCRAFT
             if 0 <= rank_index < len(ranks):
                 rank = ranks[rank_index]
-                await callback.message.edit_text(f"Выбран рейтинг: {rank}", reply_markup=None)
+                await callback.message.delete()
             else:
                 await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
                 return
@@ -593,24 +600,28 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
 
 
 
-@router.message(SearchForm.goal)
-async def save_goal(message: Message, state: FSMContext):
+@router.callback_query(SearchForm.goal)
+async def save_goal(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     game = data["game"]
 
-    if message.text:
-        if message.text == "Назад":
-            await message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
+    await callback.answer()
+    await callback.message.delete()
+    text = callback.data.split("_")[-1]
+
+    if text:
+        if text == "back":
+            await callback.message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
             await state.set_state(SearchForm.rank)
             return
 
-        elif message.text == "Пропустить":
+        elif text == "skip":
             await state.update_data(goal=None)
 
-        elif message.text in GOALS_LIST:
-            await state.update_data(goal=message.text)
+        elif text in GOALS_LIST:
+            await state.update_data(goal=text)
 
-    await get_profiles_by_filter(message, state)
+    await get_profiles_by_filter(callback.message, state)
 
 
 @router.callback_query(F.data == "profile_by_filters")
@@ -636,5 +647,5 @@ async def get_profiles_by_filter(message: Message, state: FSMContext):
             reply_markup=keyboard
         )
     else:
-        await message.answer(text="Активных анкет по заданным фильтрам не нашлось...", reply_markup=await get_back_to_games_kb("profiles"))
+        await message.answer(text=TEXT_NO_PROFILES.format(game=game), reply_markup=await get_back_to_games_kb("profiles"))
         await state.clear()

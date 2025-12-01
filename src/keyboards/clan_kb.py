@@ -119,7 +119,7 @@ async def get_game_kb(with_back: bool = True, n: int = 2) -> InlineKeyboardMarku
     
     for game in GAME_LIST:
         builder.add(
-            InlineKeyboardButton(text=game,
+            InlineKeyboardButton(text=GAME_LIST[game],
                                  callback_data=f"save_clan_game_{game}")
         )
     

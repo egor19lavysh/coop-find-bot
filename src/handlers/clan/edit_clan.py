@@ -87,6 +87,7 @@ async def save_name(message: Message, state: FSMContext):
     if message.text:
         await repository.update_name(clan_id=clan_id, name=message.text)
         await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(EditClanForm.name)
@@ -98,12 +99,13 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     game = callback.data.split("_")[-1]
-    print(game)
 
     if game:
         if game in GAME_LIST:
             await repository.update_game(clan_id=clan_id, game=game)
             await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
+            await state.clear()
+
         else:
             await callback.message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(EditClanForm.game)
@@ -119,6 +121,8 @@ async def save_description(message: Message, state: FSMContext):
     if message.text:
         await repository.update_description(clan_id=clan_id, desc=message.text)
         await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
+
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(EditClanForm.description)
@@ -131,6 +135,8 @@ async def save_demands(message: Message, state: FSMContext):
     if message.text:
         await repository.update_demands(clan_id=clan_id, demands=message.text)
         await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
+
 
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -158,10 +164,14 @@ async def save_photo(message: Message, state: FSMContext):
         await repository.update_clan_photo(clan_id=clan_id, new_photo=file_id)
         await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
         await message.answer("Назад к настройкам клана:", reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
+
     elif message.text == "Пропустить":
         await repository.update_clan_photo(clan_id=clan_id, new_photo=None)
         await message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
         await message.answer("Назад к настройкам клана:", reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
+
     else:
         await message.answer(text=TEXT_PHOTO_ERROR)
         await state.set_state(EditClanForm.photo)

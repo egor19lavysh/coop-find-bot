@@ -3,20 +3,20 @@ GENDER_LIST = [
     "Женский"
 ]
 
-GAME_LIST = [
-    "PUBG",
-    "Dota 2",
-    "Genshin Impact",
-    "Counter-Strike 2",
-    "Valorant",
-    "Call of Duty",
-    "Warcraft",
-    "League of Legends",
-    "Mobile Legends",
-    "Fortnite",
-    "Raid Shadow Legends",
-    "WoR"
-]
+GAME_LIST = {
+    "PUBG": "🎯 PUBG 🎯",
+    "Dota 2": "⚔️ Dota 2 ⚔️",
+    "Genshin Impact": "🌸 Genshin Impact 🌸",
+    "Counter-Strike 2": "🔫 Counter-Strike 2 🔫",
+    "Valorant": "🎨 Valorant 🎨",
+    "Call of Duty": "💥 Call of Duty 💥",
+    "Warcraft": "🐉 Warcraft 🐉",
+    "League of Legends": "🧿 League of Legends 🧿",
+    "Mobile Legends": "📱 Mobile Legends 📱",
+    "Fortnite": "🏗 Fortnite 🏗",
+    "Raid Shadow Legends": "💎 Raid Shadow Legends 💎",
+    "WoR": "🌠 WoR 🌠"
+}
 
 PROFILE_SAMPLE = """
 <b>Ник</b>: {nickname}
