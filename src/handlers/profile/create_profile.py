@@ -185,12 +185,30 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
                 await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
             else:
                 await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
-            await state.set_state(ProfileForm.rank)
+            await state.set_state(ProfileForm.num_rank)
 
         await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
+
+@router.message(ProfileForm.num_rank)
+async def save_num_rank(message: Message, state: FSMContext):
+    if message.text:
+        try:
+            float(message.text)
+        except Exception as e:
+            print(e)
+            await message.answer("Напиши число.")
+            return
+
+        await state.update_data(
+            game_rank=message.text
+        )
+        await message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await state.set_state(ProfileForm.gallery)
+    else:
+        await message.answer("Напиши число.")
 
 @router.callback_query(ProfileForm.add_warcraft_mode)
 async def save_mode(callback: CallbackQuery, state: FSMContext):
@@ -308,25 +326,25 @@ async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
     
     await callback.answer()
 
-@router.callback_query(ProfileForm.add_new_warcraft_rank)
-async def add_new_warcraft_rank(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    text = callback.data.split("_")[-1]
-    await callback.message.delete()
+# @router.callback_query(ProfileForm.add_new_warcraft_rank)
+# async def add_new_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+#     await callback.answer()
+#     text = callback.data.split("_")[-1]
+#     await callback.message.delete()
 
-    if text:
-        if text == "Да":
-            await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
-            await state.set_state(ProfileForm.add_warcraft_mode)
-        elif text == "Нет":
-            await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-            await state.set_state(ProfileForm.add_new_game)
-        else:
-            await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
-            await state.set_state(ProfileForm.add_new_warcraft_rank)
-    else:
-        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
-        await state.set_state(ProfileForm.add_new_warcraft_rank)
+#     if text:
+#         if text == "Да":
+#             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
+#             await state.set_state(ProfileForm.add_warcraft_mode)
+#         elif text == "Нет":
+#             await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+#             await state.set_state(ProfileForm.add_new_game)
+#         else:
+#             await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
+#             await state.set_state(ProfileForm.add_new_warcraft_rank)
+#     else:
+#         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
+#         await state.set_state(ProfileForm.add_new_warcraft_rank)
 
 
 @router.callback_query(ProfileForm.rank)
@@ -344,21 +362,11 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
     if text:
         if text == "skip":
             rank = ""
-        else:
-            rank = text
-            if game in ["Raid Shadow Legends", "WoR"]:
-                try:
-                    float(rank)
-                except Exception:
-                    await callback.message.answer("Введите численное значение!")
-                    return 
-
-            
 
         await state.update_data(
-            game_rank=rank
+            game_rank=text
         )
-        await callback.message.edit_text(f"Выбран ранг: {rank if rank != 'skip' else 'Пропустить'}", reply_markup=None)
+        await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
         await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.gallery)
     else:
@@ -388,8 +396,7 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                     game_rank=rank
                 )
             
-                await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-                await state.set_state(ProfileForm.add_new_game)
+                
             else:
                 await message.answer("Отправьте до 10 фотографий.")
                 return
@@ -403,9 +410,11 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                     game=game,
                     game_rank=rank
                 )
-            
-            await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-            await state.set_state(ProfileForm.add_new_game)
+        
+        await message.answer("Подгрузил твои фотографии. Не благодари🔥", reply_markup=ReplyKeyboardRemove())
+        await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
+        await state.set_state(ProfileForm.add_new_game)
+        
         
     elif message.text:
         if message.text == "Пропустить":
@@ -420,9 +429,11 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                 game=game,
                 game_rank=rank
             )
-        
+            await message.answer("Подгрузил твои фотографии. Не благодари🔥", reply_markup=ReplyKeyboardRemove())
             await message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
             await state.set_state(ProfileForm.add_new_game)
+            
+
 
         elif message.text == "Назад":
             if game in GAMES_RANKS:
@@ -432,8 +443,11 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
                 await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
                 await state.set_state(ProfileForm.add_warcraft_mode)
             else:
-                await message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
-                await state.set_state(ProfileForm.rank)
+                if game == "Raid Shadow Legends":
+                    await message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
+                else:
+                    await message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+                await state.set_state(ProfileForm.num_rank)
         else:
             await message.answer("Пришлите фотографии или выберите ответ с клавиатуры!")
 

@@ -30,6 +30,9 @@ TEXT_GALLERY = """
 
 Если галерея не соответствует игре, отправь скрин в поддержку: @ggstore_support
 """
+TEXT_CONFIRM_DELETE_PROFILE = """
+Ты точно хочешь удалить анкету? Я буду грустить 🥺
+"""
 
 
 @router.message(Command("profile"))
@@ -161,18 +164,30 @@ async def show_gallery(callback: CallbackQuery):
                 return
     await callback.message.answer(f"Упс, {nickname} не прикрепил фото игрового профиля", reply_markup=kb)
     
-
-
-
-
-
-
 @router.callback_query(F.data == "delete_profile")
+async def delete_profile(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+    await callback.message.answer(TEXT_CONFIRM_DELETE_PROFILE, reply_markup=await get_delete_confirm_kb())
+
 async def delete_profile(callback: CallbackQuery):
     await callback.message.delete()
     await repository.delete_profile(user_id=callback.from_user.id)
     await callback.message.answer(text=TEXT_DELETE_PROFILE, reply_markup=await get_back_to_menu())
     await callback.answer()
+
+@router.callback_query(F.data.startswith("delete_confirm_"))
+async def delete_profile_confirm(callback: CallbackQuery):
+    await callback.answer()
+
+    response = callback.data.split("_")[-1]
+
+    if response == "yes":
+        await delete_profile(callback)
+    else:
+        await update_profile_callback(callback)
+
+
 
 @router.callback_query(F.data.in_(["deactivate_profile", "activate_profile"]))
 async def deactivate_profile(callback: CallbackQuery):

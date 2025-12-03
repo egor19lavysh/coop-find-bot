@@ -21,3 +21,4 @@ class ProfileForm(StatesGroup):
     photo = State()
     check_profile = State()
     is_active = State()
+    num_rank = State()

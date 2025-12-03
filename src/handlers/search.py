@@ -19,16 +19,10 @@ from .profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 router = Router()
 
 ### НОВЫЕ ТЕКСТЫ
-TEXT_CHOOSE_SEARCH_TYPE = """Выбери, кого хочешь найти:
-🗡️ Анкеты игроков — если ищешь одного игрока.
-🛡️ Кланы — если хочешь найти сообщество игроков.
+TEXT_CHOOSE_SEARCH_TYPE = """
+Ну что, готов найти себе идеальную компанию? Выбери, кого будем искать: одного игрока или целый клан👇
 """
-TEXT_CHOOSE_GAME = """
-Настало время найти того самого тиммейта⚔️
-Того, что не ливнёт, не тильтует, и хотя бы притворится, что умеет играть.
-Выбери игру и я покажу объявления тех, кто также сейчас ищет с кем бы поиграть👇
-"""
-TEXT_CHOOSE_GAME_FOR_CLAN = "По какой игре ищем себе клан?"
+TEXT_CHOOSE_GAME_FOR_CLAN = "Выбирай игру, по которой ищешь клан👇"
 TEXT_NO_CLANS = """
 Похоже, активных кланов по {game} сейчас нет 🤷‍♂️
 
@@ -57,6 +51,23 @@ TEXT_SENT_MESSAGE = "Сообщение отправил. Ответ приле�
 TEXT_MESSAGE = "Пользователь {name} отправил тебе сообщение:\n\n{message}"
 TEXT_ADDITIONAL_INFO = "\nЕго тег в телеграме - {tag}"
 TEXT_INVITE = "Пользователь {name} приглашает тебя в {game}."
+TEXT_RSL = """
+Введи силу аккаунта в миллионах 🌟
+Если сила меньше 1 млн — впиши дробное значение.
+
+Пример: 500 000 тыс = 0,5 млн
+"""
+TEXT_NUM_RANK = "Введи силу аккаунта числом:"
+TEXT_PROFILES_SEARCH_TYPE = """
+Выбери режим поиска:
+Можешь начать поиск анкеты по критериям или просто открыть все доступные объявления. 👇
+"""
+TEXT_GAMES = """
+Настало время найти того самого тиммейта⚔️
+
+Выбери игру и я покажу объявления тех, кто также сейчас ищет с кем бы поиграть👇
+"""
+
 
 @router.message(Command("search"))
 async def start_search(message: Message, state: FSMContext):
@@ -94,7 +105,7 @@ async def choose_search_type(callback: CallbackQuery, state: FSMContext):
             reply_markup=await get_game_inline_kb()
         )
     else:
-        await callback.message.answer("Выберите вид поиска:", reply_markup=await get_search_profiles_types())
+        await callback.message.answer(TEXT_PROFILES_SEARCH_TYPE, reply_markup=await get_search_profiles_types())
 
 @router.callback_query(F.data == "game_search")
 async def game_search(callback: CallbackQuery, state: FSMContext):
@@ -105,7 +116,7 @@ async def game_search(callback: CallbackQuery, state: FSMContext):
     await state.set_state(GameForm.game)
         
     await callback.message.answer(
-            text=TEXT_CHOOSE_GAME,
+            text=TEXT_GAMES,
             reply_markup=await get_game_inline_kb()
         )
 
@@ -266,7 +277,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
-            dt = datetime.now() + timedelta(hours=24)
+            dt = datetime.now() + timedelta(minutes=1)
             await schedule_estimate(
                 apscheduler=apscheduler,
                 time=dt,
@@ -470,7 +481,7 @@ async def handle_current_page(callback: CallbackQuery):
 async def filter_search(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.delete()
-    await callback.message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
+    await callback.message.answer(TEXT_GAMES, reply_markup=await get_games_filter_search_kb())
     await state.set_state(SearchForm.game)
 
 @router.callback_query(F.data.startswith("filter_game_"))
@@ -488,9 +499,29 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
         await state.set_state(SearchForm.warcraft_mode)
     else:
-        await callback.message.answer("Введите силу аккаунта числом:", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(SearchForm.rank)
+        if game == "Raid Shadow Legends":
+            await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
+        else:
+            await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+        await state.set_state(SearchForm.num_rank)
 
+@router.message(SearchForm.num_rank)
+async def save_num_rank(message: Message, state: FSMContext):
+    if message.text:
+        try:
+            float(message.text)
+        except Exception as e:
+            print(e)
+            await message.answer("Напиши число.")
+            return
+
+        await state.update_data(
+            game_rank=message.text
+        )
+        await message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
+        await state.set_state(SearchForm.goal)
+    else:
+        await message.answer("Напиши число.")
 
 @router.callback_query(SearchForm.rank)
 async def save_rank(callback: CallbackQuery, state: FSMContext):

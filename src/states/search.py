@@ -16,3 +16,4 @@ class SearchForm(StatesGroup):
     mode = State()
     rank = State()
     goal = State()
+    num_rank = State()

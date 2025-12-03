@@ -219,20 +219,35 @@ async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMark
                                                   ])
 
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
-    buttons = [[InlineKeyboardButton(text=goal, callback_data=f"goal_{goal}")] for goal in GOALS_LIST]
+    keyboard = []
+    for i in range(len(GOALS_LIST) // 2):
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[i], callback_data=f"goal_{GOALS_LIST[i]}"),
+                         InlineKeyboardButton(text=GOALS_LIST[i+1], callback_data=f"goal_{GOALS_LIST[i+1]}"),
+                         ])
+        
+    if len(GOALS_LIST) % 2 == 1:
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[-1], callback_data=f"goal_{GOALS_LIST[-1]}")])
+
+
     if with_back:
-        buttons.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"goals_back")])
+        keyboard.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"goals_back")])
     
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 
 async def get_ranks_kb(game: str, with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []
     if game in GAMES_RANKS:
-        for rank in GAMES_RANKS[game]:
-            keyboard.append([InlineKeyboardButton(text=rank, callback_data=f"rank_{rank}")])
+        ranks = GAMES_RANKS[game]
+        for i in range(len(ranks) // 2):
+            keyboard.append([InlineKeyboardButton(text=ranks[i], callback_data=f"rank_{ranks[i]}"),
+                             InlineKeyboardButton(text=ranks[i+1], callback_data=f"rank_{ranks[i+1]}")
+                             ])
     
+        if len(ranks) % 2 == 1:
+            keyboard.append([InlineKeyboardButton(text=ranks[-1], callback_data=f"rank_{ranks[-1]}")])
+
     keyboard.append([InlineKeyboardButton(text="Пропустить", callback_data=f"rank_skip")])
 
     if with_back:
@@ -396,3 +411,10 @@ async def get_read_game_kb(game: str) -> InlineKeyboardMarkup:
 
     return builder.as_markup()
 
+async def get_delete_confirm_kb() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="Да ✅", callback_data="delete_confirm_yes"),
+         InlineKeyboardButton(text="Нет ❌", callback_data="delete_confirm_no"),]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

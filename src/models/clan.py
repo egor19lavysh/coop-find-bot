@@ -1,13 +1,13 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
-from sqlalchemy import ARRAY, Integer, DateTime, func
+from sqlalchemy import ARRAY, Integer, DateTime, func, BigInteger
 from datetime import datetime
 
 class Clan(Base):
     __tablename__ = "ggstore_clans"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int]
+    user_id = mapped_column(BigInteger)
     name: Mapped[str]
     game: Mapped[str]
     description: Mapped[str]

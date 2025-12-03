@@ -88,10 +88,9 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
 async def get_search_type_kb() -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
-            text="Анкеты игроков🗡️", 
+            text="🗡️ Игроки 🗡️", 
             callback_data="search_type_profiles"
-        )],
-        [InlineKeyboardButton(
+        ), InlineKeyboardButton(
             text="🛡️ Кланы 🛡️", 
             callback_data="search_type_clans"
         )],
@@ -245,8 +244,8 @@ async def get_to_dialog_with_user_kb(username: str) -> InlineKeyboardMarkup:
 
 async def get_search_profiles_types():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Поиск", callback_data="filter_search")],
-        [InlineKeyboardButton(text="Все объявления", callback_data="game_search")],
+        [InlineKeyboardButton(text="🔎 Поиск 🔎", callback_data="filter_search"),
+         InlineKeyboardButton(text="🧾 Все объявления 🧾", callback_data="game_search")],
         [InlineKeyboardButton(text="Назад", callback_data="start_search")]
     ])
 
@@ -278,8 +277,18 @@ async def get_games_filter_search_kb() -> InlineKeyboardMarkup:
 #     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
-    btns = [[InlineKeyboardButton(text=goal, callback_data=f"goal_{goal}")] for goal in GOALS_LIST]
-    btns.append([InlineKeyboardButton(text="Пропустить", callback_data="goal_skip")])
+    keyboard = []
+    for i in range(len(GOALS_LIST) // 2):
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[i], callback_data=f"goal_{GOALS_LIST[i]}"),
+                         InlineKeyboardButton(text=GOALS_LIST[i+1], callback_data=f"goal_{GOALS_LIST[i+1]}"),
+                         ])
+        
+    if len(GOALS_LIST) % 2 == 1:
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[-1], callback_data=f"goal_{GOALS_LIST[-1]}")])
+
+
+    keyboard.append([InlineKeyboardButton(text="Пропустить", callback_data=f"goals_skip")])
     if with_back:
-        btns.append([InlineKeyboardButton(text="Назад", callback_data="goal_back")])
-    return InlineKeyboardMarkup(inline_keyboard=btns)
+        keyboard.append([InlineKeyboardButton(text="Назад", callback_data=f"goals_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

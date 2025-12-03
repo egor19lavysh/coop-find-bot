@@ -21,6 +21,7 @@ class EditProfileForm(StatesGroup):
     photo = State()
     is_active = State()
     clear = State()
+    num_rank = State()
 
 
 
