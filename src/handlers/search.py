@@ -277,7 +277,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
-            dt = datetime.now() + timedelta(minutes=1)
+            dt = datetime.now() + timedelta(hours=24)
             await schedule_estimate(
                 apscheduler=apscheduler,
                 time=dt,
