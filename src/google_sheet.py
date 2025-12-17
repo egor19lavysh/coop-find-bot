@@ -30,12 +30,37 @@ class GoogleSheetService:
         return None
 
     def get_row_index_multi(self, criteria: dict) -> int | None:
-        """Поиск строки по нескольким колонкам. criteria = {col_index: value}"""
-        all_values = self.worksheet.get_all_values()
-        for i, row in enumerate(all_values):
-            if all(str(row[col]) == str(val) for col, val in criteria.items() if len(row) >= col):
-                return i + 1
-        return None
+        """
+        Находит индекс строки по нескольким критериям.
+        Критерии: {индекс_столбца: значение}
+        """
+        try:
+            # Получаем все данные с листа
+            data = self.sheet.get_all_values()
+            
+            for row_index, row in enumerate(data):
+                try:
+                    # Проверяем все критерии с безопасным доступом к элементам
+                    matches_all = True
+                    for col_index, expected_value in criteria.items():
+                        # Получаем значение из строки с проверкой границ
+                        cell_value = row[col_index] if col_index < len(row) else ""
+                        if str(cell_value) != str(expected_value):
+                            matches_all = False
+                            break
+                    
+                    if matches_all:
+                        return row_index + 1  # +1 потому что в Google Sheets нумерация с 1
+                        
+                except IndexError:
+                    # Пропускаем строки, которые короче чем нужно
+                    continue
+                    
+            return None
+        
+        except Exception as e:
+            print(f"Ошибка при поиске строки: {e}")
+            return None
 
     def update_row(self, index: int, data: dict):
         """

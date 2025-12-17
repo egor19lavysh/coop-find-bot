@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from src.database import Base
+from database import Base
 from sqlalchemy import BigInteger, DateTime, func, String
 from datetime import datetime
 

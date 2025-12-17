@@ -3,7 +3,7 @@ from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
 from utils.check_subscription import check_subscription
 from keyboards.start_kb import get_start_keyboard
-from handlers.start import TEXT_SUB_FAIL
+
 
 
 class SubscriptionMiddleware(BaseMiddleware):
@@ -28,7 +28,7 @@ class SubscriptionMiddleware(BaseMiddleware):
         
         if not await check_subscription(bot=message.bot, user_id=user_id):
             builder = get_start_keyboard(user_id=user_id)
-            await message.answer(text=TEXT_SUB_FAIL, reply_markup=builder.as_markup())
+            #await message.answer(text=TEXT_SUB_FAIL, reply_markup=builder.as_markup())
             return
         
         return await handler(event, data)

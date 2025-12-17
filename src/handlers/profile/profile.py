@@ -7,7 +7,7 @@ from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from .create_profile import start_profile
-from src.statistic import Statistic
+from statistic import Statistic
 import asyncio
 
 

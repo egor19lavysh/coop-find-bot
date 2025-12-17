@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from src.models.user import User
-from src.database import async_sessionmaker, AsyncSessionFactory
+from models.user import User
+from database import async_sessionmaker, AsyncSessionFactory
 from sqlalchemy import insert, select, func, desc
 from typing import Optional
 

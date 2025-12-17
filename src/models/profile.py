@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database import Base
+from database import Base
 from sqlalchemy import Integer, Date, ForeignKey, BigInteger, String
 from sqlalchemy.dialects.postgresql import ARRAY
 from datetime import date

@@ -2,19 +2,19 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from src.utils.constants import *
-from src.utils.schedule_estimate import schedule_estimate
-from src.keyboards.search_kb import *
-from src.repositories.profile_repository import profile_repository as repository
-from src.repositories.clan_repository import clan_repository
+from utils.constants import *
+from utils.schedule_estimate import schedule_estimate
+from keyboards.search_kb import *
+from repositories.profile_repository import profile_repository as repository
+from repositories.clan_repository import clan_repository
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
-from src.utils.level_up import level_up
-from src.states.search import *
-from src.utils.ranks import *
-from src.keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
+from utils.level_up import level_up
+from states.search import *
+from utils.ranks import *
+from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
 from .profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
-from src.statistic import Statistic
+from statistic import Statistic
 import asyncio
 
 router = Router()

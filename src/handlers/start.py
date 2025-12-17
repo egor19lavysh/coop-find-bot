@@ -6,7 +6,7 @@ from utils.check_subscription import check_subscription
 from handlers.profile.create_profile import start_profile
 from aiogram.fsm.context import FSMContext
 from config import settings
-from src.statistic import Statistic
+from statistic import Statistic
 import asyncio
 from repositories.user_repository import user_repository
 from datetime import datetime
@@ -24,7 +24,7 @@ TEXT_START = """Салют, игрок!
 @router.message(Command("start"))
 async def cmd_start(message: Message, command: CommandObject, state: FSMContext, statistic: Statistic):
     builder = get_start_keyboard(user_id=message.from_user.id)
-    await message.answer(text=TEXT_START, reply_markup=builder.as_markup())
+    await message.answer(text=TEXT_START)
 
     user_id = message.from_user.id
     chat_id = message.chat.id
