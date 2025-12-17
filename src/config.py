@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: str
     DB_DRIVER: str
+    GOOGLE_SHEET_CREDENTIALS_PATH: str
+    GOOGLE_SHEET_ID: str
+    GOOGLE_SHEET_WORKSHEET_NAME: str
 
     model_config = SettingsConfigDict(
         env_file='.env',

@@ -2,19 +2,20 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from utils.constants import *
-from utils.schedule_estimate import schedule_estimate
-from keyboards.search_kb import *
-from repositories.profile_repository import profile_repository as repository
-from repositories.clan_repository import clan_repository
+from src.utils.constants import *
+from src.utils.schedule_estimate import schedule_estimate
+from src.keyboards.search_kb import *
+from src.repositories.profile_repository import profile_repository as repository
+from src.repositories.clan_repository import clan_repository
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
-from utils.level_up import level_up
-from states.search import *
-from utils.ranks import *
-from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
+from src.utils.level_up import level_up
+from src.states.search import *
+from src.utils.ranks import *
+from src.keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
 from .profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
-
+from src.statistic import Statistic
+import asyncio
 
 router = Router()
 
@@ -74,16 +75,18 @@ async def start_search(message: Message, state: FSMContext):
     await message.delete()
     await state.set_state(GameForm.search_type)
     await message.answer(
-        text=TEXT_CHOOSE_SEARCH_TYPE, 
+        text=TEXT_CHOOSE_SEARCH_TYPE,
         reply_markup=await get_search_type_kb()
     )
 
+
 @router.callback_query(F.data == "start_search")
-async def start_search_callback(callback: CallbackQuery, state: FSMContext):
+async def start_search_callback(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
+    asyncio.create_task(statistic.set_start_search(callback.from_user.id))
     await callback.message.delete()
     await state.set_state(GameForm.search_type)
     await callback.message.answer(
-        text=TEXT_CHOOSE_SEARCH_TYPE, 
+        text=TEXT_CHOOSE_SEARCH_TYPE,
         reply_markup=await get_search_type_kb()
     )
     await callback.answer()
@@ -95,11 +98,11 @@ async def choose_search_type(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     await callback.message.delete()
-    
+
     await state.update_data(search_type=search_type)
     if search_type != "profiles":
         await state.set_state(GameForm.game)
-        
+
         await callback.message.answer(
             text=TEXT_CHOOSE_GAME_FOR_CLAN,
             reply_markup=await get_game_inline_kb()
@@ -107,18 +110,20 @@ async def choose_search_type(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer(TEXT_PROFILES_SEARCH_TYPE, reply_markup=await get_search_profiles_types())
 
+
 @router.callback_query(F.data == "game_search")
 async def game_search(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     await callback.message.delete()
-    
+
     await state.set_state(GameForm.game)
-        
+
     await callback.message.answer(
-            text=TEXT_GAMES,
-            reply_markup=await get_game_inline_kb()
-        )
+        text=TEXT_GAMES,
+        reply_markup=await get_game_inline_kb()
+    )
+
 
 @router.callback_query(F.data.startswith("get_profiles_by_"))
 async def get_profiles_callback_handler(callback: CallbackQuery, state: FSMContext):
@@ -127,22 +132,23 @@ async def get_profiles_callback_handler(callback: CallbackQuery, state: FSMConte
     game = callback.data.split("_")[-1]
     data = await state.get_data()
     search_type = data.get("search_type", "profiles")
-    
+
     await callback.answer()
-    
+
     if search_type == "profiles":
         await get_profiles_by_game_callback(callback, state, game)
     elif search_type == "clans":
         await get_clans_by_game_callback(callback, state, game)
 
+
 async def get_profiles_by_game_callback(callback: CallbackQuery, state: FSMContext, game: str):
     profiles = await repository.get_profiles_by_game(game=game, user_id=callback.from_user.id)
     #await callback.message.delete()
-    
+
     if profiles:
         await state.clear()
         await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")
-        
+
         keyboard = await get_profiles_kb(profiles, game=game, page=0)
         await callback.message.edit_text(
             text=TEXT_PROFILES_FOUND,
@@ -153,14 +159,15 @@ async def get_profiles_by_game_callback(callback: CallbackQuery, state: FSMConte
         await callback.message.edit_reply_markup(reply_markup=await get_back_to_games_kb("profiles"))
         await state.clear()
 
+
 async def get_clans_by_game_callback(callback: CallbackQuery, state: FSMContext, game: str):
     clans = await clan_repository.get_clans_by_game(game=game, user_id=callback.from_user.id)
     #await callback.message.delete()
-    
+
     if clans:
         await state.clear()
         await state.update_data(clans=clans, current_page=0, game=game, search_type="clans")
-        
+
         keyboard = await get_clans_kb(clans, page=0)
         await callback.message.edit_text(
             text=TEXT_CLANS_FOUND
@@ -171,6 +178,7 @@ async def get_clans_by_game_callback(callback: CallbackQuery, state: FSMContext,
         await callback.message.edit_reply_markup(reply_markup=await get_back_to_games_kb("clans"))
         await state.clear()
 
+
 # Хендлеры для профилей
 @router.callback_query(F.data.startswith("profiles_page_"))
 async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext):
@@ -180,22 +188,23 @@ async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext)
     data = await state.get_data()
     profiles = data.get("profiles", [])
     game = data["game"]
-    
+
     if profiles:
         await state.update_data(current_page=page)
         keyboard = await get_profiles_kb(profiles, game=game, page=page)
         await callback.message.edit_reply_markup(reply_markup=keyboard)
-    
+
     await callback.answer()
 
-@router.callback_query(F.data.startswith("send_message_to_user_"))
-async def send_message(callback: CallbackQuery, state: FSMContext):
 
+@router.callback_query(F.data.startswith("send_message_to_user_"))
+async def send_message(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
+    asyncio.create_task(statistic.set_invite_game(callback.from_user.id))
     user_id = int(callback.data.split("_")[-1])
-    
+
     data = await state.get_data()
     game = data.get("game")
-    
+
     await state.set_state(SendMessageForm.message)
     await state.update_data(
         user_id=user_id,
@@ -204,28 +213,29 @@ async def send_message(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(text=TEXT_SEND_MESSAGE)
     await callback.answer()
 
+
 @router.message(SendMessageForm.message)
 async def send_message_to_user(message: Message, state: FSMContext):
     if message.text:
         data = await state.get_data()
         user_id = data.get("user_id")
         game = data.get("game")
-        
+
         if not user_id or not game:
             await message.answer(text="Произошла ошибка. Попробуйте заново.")
             await state.clear()
             return
-        
 
         postfix = ""
         if message.from_user.username:
             postfix = TEXT_ADDITIONAL_INFO.format(tag="@" + message.from_user.username)
-                
+
         try:
             await message.bot.send_message(
                 chat_id=user_id,
                 text=TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix,
-                reply_markup=await get_to_dialog_with_user_kb(username=message.from_user.username) if message.from_user.username else None
+                reply_markup=await get_to_dialog_with_user_kb(
+                    username=message.from_user.username) if message.from_user.username else None
             )
             await message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
@@ -236,11 +246,11 @@ async def send_message_to_user(message: Message, state: FSMContext):
                         await level_up(message.bot, profile.user_id, new_xp // 100 + 1)
                     await repository.add_experience(user_id=profile.user_id, experience=20)
                     await repository.update_send_first_message(user_id=profile.user_id)
-                
+
 
         except:
             await message.answer(text=TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb())
-        
+
         # Очищаем состояние, но сохраняем игру для возможности вернуться
         await state.clear()
         await state.update_data(game=game, search_type="profiles")
@@ -248,9 +258,10 @@ async def send_message_to_user(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(SendMessageForm.message)
 
-@router.callback_query(F.data.startswith("invite_user_"))
-async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: AsyncIOScheduler):
 
+@router.callback_query(F.data.startswith("invite_user_"))
+async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: AsyncIOScheduler, statistic: Statistic):
+    asyncio.create_task(statistic.set_invite_game(callback.from_user.id))
     callback_parts = callback.data.split("_")
     teammate_id = int(callback_parts[-1])
     game = callback_parts[-2]
@@ -264,16 +275,16 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
     postfix = ""
     if callback.from_user.username:
         postfix = TEXT_ADDITIONAL_INFO.format(tag="@" + callback.from_user.username)
-    
+
     await state.update_data(game=game, search_type="profiles")
-    
+
     try:
         keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
         await callback.bot.send_message(
-                chat_id=teammate_id,
-                text=TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix,
-                reply_markup=keyboard
-            )
+            chat_id=teammate_id,
+            text=TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix,
+            reply_markup=keyboard
+        )
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
@@ -292,6 +303,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
 
     await callback.answer()
 
+
 # Хендлеры для кланов
 @router.callback_query(F.data.startswith("clans_page_"))
 async def handle_clans_pagination(callback: CallbackQuery, state: FSMContext):
@@ -300,13 +312,14 @@ async def handle_clans_pagination(callback: CallbackQuery, state: FSMContext):
     page = int(callback.data.split("_")[-1])
     data = await state.get_data()
     clans = data.get("clans", [])
-    
+
     if clans:
         await state.update_data(current_page=page)
         keyboard = await get_clans_kb(clans, page=page)
         await callback.message.edit_reply_markup(reply_markup=keyboard)
-    
+
     await callback.answer()
+
 
 @router.callback_query(F.data.startswith("view_clan_"))
 async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
@@ -316,14 +329,13 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     clans = data.get("clans", [])
     game = data.get("game")
-    
+
     clan = next((c for c in clans if c.id == clan_id), None)
-    
+
     if not clan:
         await callback.answer("Клан не найден")
         return
 
-    
     clan_info = f"<b>Название клана</b>: {clan.name}\n\n"
     clan_info += f"<b>Игра</b>: {clan.game}\n\n"
     clan_info += f"<b>Описание</b>: {clan.description}\n\n"
@@ -342,20 +354,18 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
             clan_info += f"<b>Тег лидера клана</b>: @{user.nickname}\n\n"
     except Exception as e:
         print(e)
-        
 
     if clan.created_at:
         time = clan.created_at.strftime('%d.%m.%Y %H:%M')
         clan_info += f"<b>Дата размещения</b>: {time}"
-    
-    
+
     await callback.answer()
-    
+
     await callback.message.edit_text(
         text=clan_info,
         reply_markup=await get_clan_detail_kb(clan_id, game)
     )
-    
+
 
 @router.callback_query(F.data.startswith("join_clan_"))
 async def join_clan(callback: CallbackQuery, state: FSMContext):
@@ -364,30 +374,29 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     clan_id = int(callback.data.split("_")[-1])
     data = await state.get_data()
     clans = data.get("clans", [])
-    
-    
+
     clan = next((c for c in clans if c.id == clan_id), None)
     if not clan:
         await callback.answer("Клан не найден")
         return
-    
+
     await state.update_data(game=clan.game)
-    
+
     user_profile = await repository.get_profile(callback.from_user.id)
     username = user_profile.nickname if user_profile else callback.from_user.full_name
-    
+
     join_message = f"🏰 Заявка на вступление в клан '{clan.name}'\n\n"
     join_message += f"👤 Игрок: {username}\n"
     join_message += f"🎮 Игра: {clan.game}\n"
-    
+
     if user_profile:
         games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
         join_message += f"📊 Ранг: {games.get(clan.game, None) or 'Не указан'}\n"
         join_message += f"🎯 Цель: {user_profile.goal}\n"
-    
+
     if callback.from_user.username:
         join_message += f"📞 Телеграм: @{callback.from_user.username}"
-    
+
     join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
     try:
         keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
@@ -402,12 +411,13 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
         if user_profile.experience // 100 < new_xp // 100:
             await level_up(callback.bot, user_id=user_profile.user_id, new_level=new_xp // 100 + 1)
         await repository.add_experience(user_id=user_profile.user_id, experience=30)
-        
+
     except Exception as e:
         await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
         print(e)
 
     await callback.answer()
+
 
 @router.callback_query(F.data.startswith("back_to_clans"))
 async def back_to_clans(callback: CallbackQuery, state: FSMContext):
@@ -415,10 +425,10 @@ async def back_to_clans(callback: CallbackQuery, state: FSMContext):
 
     data = await state.get_data()
     game = data.get("game")
-    
+
     if game:
         clans = await clan_repository.get_clans_by_game(game=game, user_id=callback.from_user.id)
-        
+
         if clans:
             await state.update_data(clans=clans, current_page=0)
             keyboard = await get_clans_kb(clans, page=0)
@@ -428,11 +438,13 @@ async def back_to_clans(callback: CallbackQuery, state: FSMContext):
             )
     await callback.answer()
 
+
 @router.callback_query(F.data == "close_clans_list")
 async def close_clans_list(callback: CallbackQuery, state: FSMContext):
     #await callback.message.delete()
     await state.clear()
     await callback.answer()
+
 
 @router.callback_query(F.data == "back_to_profiles")
 async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
@@ -441,7 +453,7 @@ async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     game = data.get("game")
     search_type = data.get("search_type", "profiles")
-    
+
     if game:
         if search_type == "profiles":
             profiles = await repository.get_profiles_by_game(game=game, user_id=callback.from_user.id)
@@ -463,6 +475,7 @@ async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
                 )
     await callback.answer()
 
+
 @router.callback_query(F.data == "close_profiles_list")
 async def close_profiles_list(callback: CallbackQuery, state: FSMContext):
     #await callback.message.delete()
@@ -471,11 +484,13 @@ async def close_profiles_list(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
 
+
 @router.callback_query(F.data == "current_page")
 async def handle_current_page(callback: CallbackQuery):
     #await callback.message.delete()
 
     await callback.answer()
+
 
 @router.callback_query(F.data == "filter_search")
 async def filter_search(callback: CallbackQuery, state: FSMContext):
@@ -483,6 +498,7 @@ async def filter_search(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer(TEXT_GAMES, reply_markup=await get_games_filter_search_kb())
     await state.set_state(SearchForm.game)
+
 
 @router.callback_query(F.data.startswith("filter_game_"))
 async def filter_game(callback: CallbackQuery, state: FSMContext):
@@ -505,6 +521,7 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
         await state.set_state(SearchForm.num_rank)
 
+
 @router.message(SearchForm.num_rank)
 async def save_num_rank(message: Message, state: FSMContext):
     if message.text:
@@ -523,6 +540,7 @@ async def save_num_rank(message: Message, state: FSMContext):
     else:
         await message.answer("Напиши число.")
 
+
 @router.callback_query(SearchForm.rank)
 async def save_rank(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -535,7 +553,7 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
         if text == "back":
             await callback.message.answer("Выберите игру:", reply_markup=await get_games_filter_search_kb())
             await state.set_state(SearchForm.game)
-            return 
+            return
 
         elif text == "skip":
             await state.update_data(rank=None)
@@ -556,6 +574,7 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
         await state.set_state(SearchForm.goal)
 
+
 @router.callback_query(SearchForm.warcraft_mode)
 async def save_mode(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -568,7 +587,7 @@ async def save_mode(callback: CallbackQuery, state: FSMContext):
                 mode=text
             )
             is_pve = text == "PvE"
-            await callback.message.answer("Выберите рейтинг:", reply_markup = await get_warcraft_ranks_kb(is_pve=is_pve))
+            await callback.message.answer("Выберите рейтинг:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
             await state.set_state(SearchForm.warcraft_rank)
         elif text == "skip":
             await state.update_data(
@@ -618,17 +637,15 @@ async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer("Произошла какая-то ошибка... Попытайтесь позже")
         return
-    
+
     data = await state.get_data()
-    
+
     await state.update_data(
         rank=data["mode"] + "/" + rank + ";"
     )
 
     await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
     await state.set_state(SearchForm.goal)
-
-
 
 
 @router.callback_query(SearchForm.goal)
@@ -663,23 +680,24 @@ async def get_profiles_by_filter_callback(callback: CallbackQuery, state: FSMCon
     await callback.message.delete()
     await get_profiles_by_filter(callback.message, state)
 
+
 async def get_profiles_by_filter(message: Message, state: FSMContext):
     data = await state.get_data()
     game = data["game"]
     rank = data.get("rank", None)
-    goal = data.get("goal",  None)
+    goal = data.get("goal", None)
     user_id = data["user_id"]
     profiles = await repository.get_profiles_by_filters(user_id=user_id, game=game, rank=rank, goal=goal)
 
-    
     if profiles:
         await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")
-        
+
         keyboard = await get_profiles_kb(profiles, game=game, page=0, need_filter=True)
         await message.answer(
             text=TEXT_PROFILES_FOUND,
             reply_markup=keyboard
         )
     else:
-        await message.answer(text=TEXT_NO_PROFILES.format(game=game), reply_markup=await get_back_to_games_kb("profiles"))
+        await message.answer(text=TEXT_NO_PROFILES.format(game=game),
+                             reply_markup=await get_back_to_games_kb("profiles"))
         await state.clear()

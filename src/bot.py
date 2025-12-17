@@ -10,6 +10,10 @@ from middlewares.album_middleware import AlbumMiddleware
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.enums import ParseMode
+from google_sheet import GoogleSheetService
+from statistic import Statistic
+from repositories.user_repository import user_repository
+
 
 
 logging.basicConfig(level=logging.INFO)
@@ -20,14 +24,20 @@ dp = Dispatcher()
 async def main() -> None:
     bot = Bot(token=settings.TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
-    
+    google_sheet = GoogleSheetService(credentials_path=settings.GOOGLE_SHEET_CREDENTIALS_PATH,
+                                      sheet_id=settings.GOOGLE_SHEET_ID,
+                                      worksheet=settings.GOOGLE_SHEET_WORKSHEET_NAME)
+    statistic = Statistic(google_sheet=google_sheet,
+                          user_repository=user_repository)
+    dp['statistic'] = statistic
+
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     
     for router in routers:
         dp.include_router(router)
 
     scheduler_middleware = SchedulerMiddleware(scheduler=scheduler)
-    sub_middleware = SubscriptionMiddleware()
+    #sub_middleware = SubscriptionMiddleware()
     action_middleware = ActivityTrackingMiddleware()
     album_middleware = AlbumMiddleware()
 

@@ -7,6 +7,8 @@ from keyboards.profile_kb import *
 from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from .create_profile import start_profile
+from src.statistic import Statistic
+import asyncio
 
 
 router = Router()
@@ -48,7 +50,8 @@ async def update_profile_callback(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("read_profile"))
-async def read_profile(callback: CallbackQuery, state: FSMContext):
+async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
+    asyncio.create_task(statistic.set_open_profile(callback.from_user.id))
 
     await callback.message.delete()
 

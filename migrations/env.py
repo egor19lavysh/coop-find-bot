@@ -25,6 +25,7 @@ if config.config_file_name is not None:
 
 from src.models.profile import Profile
 from src.models.clan import Clan
+from src.models.user import User
 
 target_metadata = Base.metadata
 
