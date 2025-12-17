@@ -652,6 +652,8 @@ async def save_goal(callback: CallbackQuery, state: FSMContext):
         elif text in GOALS_LIST:
             await state.update_data(goal=text)
 
+    await state.update_data(user_id=callback.from_user.id)
+
     await get_profiles_by_filter(callback.message, state)
 
 
@@ -666,7 +668,8 @@ async def get_profiles_by_filter(message: Message, state: FSMContext):
     game = data["game"]
     rank = data.get("rank", None)
     goal = data.get("goal",  None)
-    profiles = await repository.get_profiles_by_filters(game=game, rank=rank, goal=goal, user_id=message.from_user.id)
+    user_id = data["user_id"]
+    profiles = await repository.get_profiles_by_filters(user_id=user_id, game=game, rank=rank, goal=goal)
 
     
     if profiles:

@@ -8,7 +8,8 @@ from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from handlers.menu import cmd_menu
 from .edit_profile import start_edit_profile_message
-
+from utils.creation_process import restrict_access, CMDS
+from typing import Union
 
 
 router = Router()
@@ -36,7 +37,8 @@ TEXT_REJECTED = "\n\nОтклонено ❌"
 TEXT_ALREADY_HAVE_PROFILE = "У тебя уже есть анкета.\nТы можешь ее удалить или изменить"
 IS_PROFILE_OK = "Все верно?"
 TEXT_ADD_GAME = "Добавить еще игру?"
-TEXT_BACK = "back"
+CALLBACK_BACK = "back"
+TEXT_BACK = "Назад"
 TEXT_WARCRAFT_MODE = "Выбери режим из списка, в котором хочешь указать рейтинг:"
 TEXT_NUM_RANK = "Введи силу аккаунта числом:"
 TEXT_GALLERY = "Отправь скриншоты игрового профиля, до 10 шт. (по желанию)"
@@ -82,6 +84,10 @@ async def start_profile(bot: Bot, state: FSMContext):
 
 @router.message(ProfileForm.nickname)
 async def save_nickname(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_NICK, get_back_kb)
+        return
+    
     if message.text == TEXT_BACK:
         await message.answer("Создание анкеты отменено.", reply_markup=await get_back_to_menu())
         await state.clear()
@@ -97,6 +103,10 @@ async def save_nickname(message: Message, state: FSMContext):
 
 @router.message(ProfileForm.telegram_tag)
 async def save_telegram_tag(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_TAG, get_tag_kb)
+        return
+    
     if message.text == TEXT_BACK:
         await message.answer(text=TEXT_NICK, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.nickname)
@@ -116,12 +126,22 @@ async def save_telegram_tag(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)
 
+@router.message(ProfileForm.gender)
 @router.callback_query(ProfileForm.gender)
-async def save_gender(callback: CallbackQuery, state: FSMContext):
+async def save_gender(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_GENDER, get_gender_keyboard, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
 
-    if text == TEXT_BACK:
+    
+
+    if text == CALLBACK_BACK:
         await callback.message.answer(text=TEXT_TAG, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)
         return
@@ -145,8 +165,17 @@ async def save_gender(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_gender_keyboard())
         await state.set_state(ProfileForm.gender)
 
+
+@router.message(ProfileForm.game)
 @router.callback_query(ProfileForm.game)
-async def save_game(callback: CallbackQuery, state: FSMContext):
+async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_GAME, get_game_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     if callback.data == "back_from_games":
         await callback.message.answer(text=TEXT_GENDER, reply_markup=await get_gender_keyboard())
         await state.set_state(ProfileForm.gender)
@@ -194,6 +223,15 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ProfileForm.num_rank)
 async def save_num_rank(message: Message, state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+    if message.text in CMDS:
+        if game == "Raid Shadow Legends":
+            await restrict_access(message, TEXT_RSL, ReplyKeyboardRemove)
+        else:
+            await restrict_access(message, TEXT_NUM_RANK, ReplyKeyboardRemove)
+        return
+    
     if message.text:
         try:
             float(message.text)
@@ -210,11 +248,19 @@ async def save_num_rank(message: Message, state: FSMContext):
     else:
         await message.answer("Напиши число.")
 
+@router.message(ProfileForm.add_warcraft_mode)
 @router.callback_query(ProfileForm.add_warcraft_mode)
-async def save_mode(callback: CallbackQuery, state: FSMContext):
+async def save_mode(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_WARCRAFT_MODE, get_warcraft_modes_kb, True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
         return
@@ -243,6 +289,7 @@ async def save_mode(callback: CallbackQuery, state: FSMContext):
                     mode = text
                     await state.update_data(mode=mode)
                     is_pve = mode == "PvE"
+                    await state.update_data(is_pve=is_pve) # Костыль
 
                     await callback.message.answer(text="Выбери рейтинг из списка:", reply_markup=await get_warcraft_ranks_kb(is_pve=is_pve))
                     await state.set_state(ProfileForm.add_warcraft_rank)
@@ -256,8 +303,18 @@ async def save_mode(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
 
+@router.message(ProfileForm.add_warcraft_rank)
 @router.callback_query(ProfileForm.add_warcraft_rank)
-async def save_warcraft_rank(callback: CallbackQuery, state: FSMContext):
+async def save_warcraft_rank(event: Union[CallbackQuery, Message], state: FSMContext):
+    data = await state.get_data()
+    is_pve = data.get("is_pve", False)
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, "Выбери рейтинг из списка:", get_warcraft_ranks_kb, is_pve=is_pve)
+            return
+    else:
+        callback = event
+
     await callback.answer()
 
     if callback.data == "back_from_warcraft_ranks":
@@ -326,55 +383,54 @@ async def handle_ranks_pagination(callback: CallbackQuery, state: FSMContext):
     
     await callback.answer()
 
-# @router.callback_query(ProfileForm.add_new_warcraft_rank)
-# async def add_new_warcraft_rank(callback: CallbackQuery, state: FSMContext):
-#     await callback.answer()
-#     text = callback.data.split("_")[-1]
-#     await callback.message.delete()
 
-#     if text:
-#         if text == "Да":
-#             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
-#             await state.set_state(ProfileForm.add_warcraft_mode)
-#         elif text == "Нет":
-#             await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
-#             await state.set_state(ProfileForm.add_new_game)
-#         else:
-#             await callback.message.answer(text=TEXT_WRONG_ANSWER, reply_markup=await get_confirmation_kb(False))
-#             await state.set_state(ProfileForm.add_new_warcraft_rank)
-#     else:
-#         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(False))
-#         await state.set_state(ProfileForm.add_new_warcraft_rank)
-
-
+@router.message(ProfileForm.rank)
 @router.callback_query(ProfileForm.rank)
-async def save_rank(callback: CallbackQuery, state: FSMContext):
+async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
+    data = await state.get_data()
+    game = data["game"]
+
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_RANK.format(game=game), get_ranks_kb, game, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ProfileForm.game)
         return
     
-    data = await state.get_data()
-    game = data["game"]
     
     if text:
         if text == "skip":
             rank = ""
 
-        await state.update_data(
-            game_rank=text
-        )
-        await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
-        await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
-        await state.set_state(ProfileForm.gallery)
+        if text in GAMES_RANKS[game]:
+            await state.update_data(
+                game_rank=text
+            )
+            await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
+            await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+            await state.set_state(ProfileForm.gallery)
+        else:
+            await callback.message.answer("Выбрано некорректное значение!")
+            await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
+            return
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.rank)
 
+
 @router.message(ProfileForm.gallery)
 async def save_gallery(message: Message, state: FSMContext, album: list[Message] = None):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_GALLERY, get_skip_keyboard, with_back=True)
+        return
+    
     data = await state.get_data()
     games = data["games"]
     game = data["game"]
@@ -453,12 +509,20 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
 
         
 
+@router.message(ProfileForm.add_new_game)
 @router.callback_query(ProfileForm.add_new_game)
-async def add_new_game(callback: CallbackQuery, state: FSMContext):
+async def add_new_game(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_ADD_GAME, get_confirmation_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     await callback.message.delete()
     text = callback.data.split("_")[-1]
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         data = await state.get_data()
         
         await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
@@ -479,14 +543,22 @@ async def add_new_game(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
 
+@router.message(ProfileForm.time)
 @router.callback_query(ProfileForm.time)
-async def save_time(callback: CallbackQuery, state: FSMContext):
+async def save_time(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_TIME, get_time_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
     data = await state.get_data()
     time = data["time"]
 
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         await callback.message.answer(text=TEXT_ADD_GAME, reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_game)
         return
@@ -506,13 +578,21 @@ async def save_time(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_time_kb(with_back=True))
 
+@router.message(ProfileForm.add_new_time)
 @router.callback_query(ProfileForm.add_new_time)
-async def add_new_time(callback: CallbackQuery, state: FSMContext):
+async def add_new_time(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, "Добавить еще промежуток время?", get_confirmation_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     await callback.message.delete()
     text = callback.data.split("_")[-1]
 
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         data = await state.get_data()
         time = data["time"]
         
@@ -544,6 +624,10 @@ async def add_new_time(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ProfileForm.about)
 async def save_about(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_ABOUT, get_back_kb)
+        return
+    
     if message.text == TEXT_BACK:
         await message.answer(text="Добавить еще промежуток времени?", reply_markup=await get_confirmation_kb(with_back=True))
         await state.set_state(ProfileForm.add_new_time)
@@ -557,15 +641,23 @@ async def save_about(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_back_kb())
         await state.set_state(ProfileForm.about)
 
+@router.message(ProfileForm.goal)
 @router.callback_query(ProfileForm.goal)
-async def save_goal(callback: CallbackQuery, state: FSMContext):
+async def save_goal(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_GOAL, get_goals_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
 
     data = await state.get_data()
     goals = data["goals"]
 
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         await callback.message.answer(text=TEXT_ABOUT, reply_markup=await get_back_kb())
         await state.update_data(goals=[])
         await state.set_state(ProfileForm.about)
@@ -586,14 +678,22 @@ async def save_goal(callback: CallbackQuery, state: FSMContext):
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_goals_kb(with_back=True))
 
+@router.message(ProfileForm.add_new_goal)
 @router.callback_query(ProfileForm.add_new_goal)
-async def add_new_goal(callback: CallbackQuery, state: FSMContext):
+async def add_new_goal(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, "Добавить еще цель?", get_confirmation_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     await callback.answer()
     text = callback.data.split("_")[-1]
 
     await callback.message.delete()
 
-    if text == TEXT_BACK:
+    if text == CALLBACK_BACK:
         data = await state.get_data()
         goals = data["goals"]
         
@@ -626,6 +726,10 @@ async def add_new_goal(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ProfileForm.photo)
 async def save_photo(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_PHOTO, get_photo_kb, with_back=True)
+        return
+    
     data = await state.get_data()
     if message.text == TEXT_BACK:
         await message.answer(text=TEXT_GOAL, reply_markup=await get_goals_kb(with_back=True))
@@ -722,8 +826,16 @@ async def check_profile(message: Message, state: FSMContext):
     await state.set_state(ProfileForm.check_profile)
 
 
+@router.message(ProfileForm.check_profile)
 @router.callback_query(ProfileForm.check_profile, F.data.in_(["profile_correct", "profile_incorrect", "back_from_check"]))
-async def commit_profile(callback: CallbackQuery, state: FSMContext):
+async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, IS_PROFILE_OK, get_commit_profile_kb)
+            return
+    else:
+        callback = event
+
     await callback.message.delete()
 
     if callback.data == "back_from_check":
@@ -744,11 +856,18 @@ async def commit_profile(callback: CallbackQuery, state: FSMContext):
     elif callback.data == "profile_incorrect":
         await callback.message.answer(text="Редактируем анкету...")
         await start_edit_profile_message(callback.message, state)
-        # Состояние изменится в процессе редактирования, поэтому не меняем его здесь
         await callback.answer()
 
+@router.message(ProfileForm.is_active)
 @router.callback_query(ProfileForm.is_active)
-async def save_status(callback: CallbackQuery, state: FSMContext):
+async def save_status(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_ALLOW_INVITATIONS, get_status_kb, with_back=True)
+            return
+    else:
+        callback = event
+
     if callback.data == "back_from_status":
         await callback.message.answer(text=IS_PROFILE_OK, reply_markup=await get_commit_profile_kb(with_back=True))
         await state.set_state(ProfileForm.check_profile)

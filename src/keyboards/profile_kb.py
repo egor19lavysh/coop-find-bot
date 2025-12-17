@@ -221,8 +221,8 @@ async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMark
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []
     for i in range(len(GOALS_LIST) // 2):
-        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[i], callback_data=f"goal_{GOALS_LIST[i]}"),
-                         InlineKeyboardButton(text=GOALS_LIST[i+1], callback_data=f"goal_{GOALS_LIST[i+1]}"),
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[i*2], callback_data=f"goal_{GOALS_LIST[i*2]}"),
+                         InlineKeyboardButton(text=GOALS_LIST[i*2+1], callback_data=f"goal_{GOALS_LIST[i*2+1]}"),
                          ])
         
     if len(GOALS_LIST) % 2 == 1:
@@ -241,8 +241,8 @@ async def get_ranks_kb(game: str, with_back: bool = False) -> InlineKeyboardMark
     if game in GAMES_RANKS:
         ranks = GAMES_RANKS[game]
         for i in range(len(ranks) // 2):
-            keyboard.append([InlineKeyboardButton(text=ranks[i], callback_data=f"rank_{ranks[i]}"),
-                             InlineKeyboardButton(text=ranks[i+1], callback_data=f"rank_{ranks[i+1]}")
+            keyboard.append([InlineKeyboardButton(text=ranks[i*2], callback_data=f"rank_{ranks[i*2]}"),
+                             InlineKeyboardButton(text=ranks[i*2+1], callback_data=f"rank_{ranks[i*2+1]}")
                              ])
     
         if len(ranks) % 2 == 1:
