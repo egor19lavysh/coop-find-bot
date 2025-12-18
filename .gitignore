@@ -2,4 +2,4 @@ venv
 .env
 __pycache__
 migrations
-coopfind-test-16821c6b030a.json
+./coopfind-test-96fc66f7f57a.json

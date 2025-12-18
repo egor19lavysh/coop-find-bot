@@ -8,6 +8,8 @@ from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from handlers.menu import cmd_menu
 from states.create_clan import *
+from utils.creation_process import CMDS, restrict_access
+from typing import Union
 
 
 router = Router()
@@ -44,12 +46,17 @@ async def start_clan(bot: Bot, state: FSMContext):
     data = await state.get_data()
     user_id = data["user_id"]
 
+    await state.set_state(ClanForm.name)
     await bot.send_message(chat_id=user_id, text=TEXT_INTRO)
     await bot.send_message(chat_id=user_id, text=TEXT_NAME)
-    await state.set_state(ClanForm.name)
+    
 
 @router.message(ClanForm.name)
 async def save_name(message: Message, state: FSMContext):
+    if  message.text in CMDS:
+        await restrict_access(message, TEXT_NAME, None)
+        return
+    
     if message.text:
         await state.update_data(name=message.text)
         await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=False))
@@ -58,52 +65,78 @@ async def save_name(message: Message, state: FSMContext):
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.name)
 
+@router.message(ClanForm.game)
 @router.callback_query(ClanForm.game)
-async def save_game(callback: CallbackQuery, state: FSMContext):
+async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, TEXT_GAME, get_game_kb, with_back=False)
+            return
+    else:
+        callback = event
+
     game = callback.data.split("_")[-1]
     await callback.answer()
 
     if game:
         if game in GAME_LIST:
             await state.update_data(game=game)
-            await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
             await state.set_state(ClanForm.description)
+            await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
         else:
-            await callback.message.answer(text=TEXT_WRONG_ANSWER)
             await state.set_state(ClanForm.game)
+            await callback.message.answer(text=TEXT_WRONG_ANSWER)
+            
     else:
-        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.game)
+        await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        
 
 @router.message(ClanForm.description)
 async def save_description(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_DESCRIPTION, ReplyKeyboardRemove)
+        return
+    
     if message.text:
         await state.update_data(description=message.text)
-        await message.answer(text=TEXT_DEMANDS)
         await state.set_state(ClanForm.demands)
+        await message.answer(text=TEXT_DEMANDS)
+        
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.description)
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        
 
 @router.message(ClanForm.demands)
 async def save_demands(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_DEMANDS, None)
+        return
+    
     if message.text:
         await state.update_data(demands=message.text)
-        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard(with_back=False))
         await state.set_state(ClanForm.photo)
+        await message.answer(text=TEXT_PHOTO, reply_markup=await get_skip_keyboard(with_back=False))
+        
     else:
-        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.demands)
+        await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
+        
 
 @router.message(ClanForm.photo)
 async def save_photo(message: Message, state: FSMContext):
+    if message.text in CMDS:
+        await restrict_access(message, TEXT_PHOTO, get_skip_keyboard, with_back=False)
+        return
+    
     if message.photo:
         await state.update_data(photo=message.photo[-1].file_id)
     elif message.text == "Пропустить":
         await state.update_data(photo=None)
     else:
-        await message.answer(text=TEXT_PHOTO_ERROR)
         await state.set_state(ClanForm.photo)
+        await message.answer(text=TEXT_PHOTO_ERROR)
         return
     
     await check_profile(message=message, state=state)
@@ -141,9 +174,16 @@ async def check_profile(message: Message, state: FSMContext):
     await message.answer(text=IS_CLAN_OK, reply_markup=await get_commit_clan_kb())
     await state.set_state(ClanForm.check)
 
-
+@router.message(ClanForm.check)
 @router.callback_query(ClanForm.check)
-async def commit_profile(callback: CallbackQuery, state: FSMContext):
+async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, IS_CLAN_OK, get_commit_clan_kb)
+            return
+    else:
+        callback = event
+
     await callback.answer()
 
     if callback.data:

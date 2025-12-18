@@ -9,7 +9,7 @@ from handlers.clan.clan import router as clan_router
 from handlers.clan.edit_clan import router as edit_clan_router
 from handlers.profile.edit_profile import router as edit_profile_router
 
-routers = [start_router, create_profile_router, menu_router,
-            profile_router, search_profile, estimate_router, 
-            create_clan_router, clan_router, edit_profile_router,
+routers = [start_router, create_clan_router, create_profile_router, menu_router,
+            profile_router, search_profile, estimate_router,
+            clan_router, edit_profile_router,
             edit_clan_router]

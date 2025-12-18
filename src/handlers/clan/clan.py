@@ -98,17 +98,6 @@ async def read_clan(callback: CallbackQuery):
     
     await callback.answer() 
 
-# @router.callback_query(F.data.startswith("recreate_clan"))
-# async def recreate_clan(callback: CallbackQuery, state: FSMContext):
-#     await callback.message.delete()
-
-#     clan_id = int(callback.data.split("_")[-1])
-#     await repository.delete_clan(clan_id=clan_id)
-#     await state.update_data(
-#         user_id=callback.from_user.id
-#     )
-#     await start_clan(callback.bot, state)
-#     await callback.answer()
 
 @router.callback_query(F.data.startswith("delete_clan"))
 async def delete_clan(callback: CallbackQuery):
@@ -118,30 +107,3 @@ async def delete_clan(callback: CallbackQuery):
     await repository.delete_clan(clan_id=clan_id)
     await callback.message.answer(text=TEXT_DELETE_CLAN, reply_markup=await get_back_to_clans())
     await callback.answer()
-
-# @router.callback_query(F.data.startswith("update_clan_photo"))
-# async def update_photo(callback: CallbackQuery, state: FSMContext):
-#     await callback.message.delete()
-
-
-#     clan_id = int(callback.data.split("_")[-1])
-#     if await repository.get_clan_by_id(clan_id=clan_id):
-#         await state.update_data(clan_id=clan_id)
-#         await state.set_state(PhotoClanForm.photo)
-#         await callback.message.answer(text=TEXT_SEND_PHOTO)
-#     else:
-#         await callback.message.answer(text=TEXT_NO_CLAN, reply_markup=await get_back_to_menu(clan_id))
-    
-#     await callback.answer()
-
-
-# @router.message(PhotoClanForm.photo)
-# async def update_profile_photo(message: Message, state: FSMContext):
-#     if message.photo:
-#         data = await state.get_data()
-#         await repository.update_clan_photo(clan_id=data["clan_id"], new_photo=message.photo[-1].file_id)
-#         await message.answer(text=TEXT_PHOTO_UPDATED, reply_markup=await get_back_to_menu(data["clan_id"]))
-#     else:
-#         await message.answer(text=TEXT_PHOTO_ERROR)
-
-#     await state.clear()
