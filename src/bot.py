@@ -6,6 +6,7 @@ from handlers import routers
 from middlewares.middleware import SubscriptionMiddleware
 from middlewares.apscheduler_middleware import SchedulerMiddleware
 from middlewares.actions_middleware import ActivityTrackingMiddleware
+from middlewares.ad_middleware import AdvertismentMiddleware
 from middlewares.album_middleware import AlbumMiddleware
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -40,9 +41,11 @@ async def main() -> None:
     #sub_middleware = SubscriptionMiddleware()
     action_middleware = ActivityTrackingMiddleware()
     album_middleware = AlbumMiddleware()
+    ad_middleware = AdvertismentMiddleware()
 
     #dp.message.middleware(sub_middleware)
     #dp.callback_query.middleware(sub_middleware)
+    dp.callback_query.middleware(ad_middleware)
     dp.message.middleware(scheduler_middleware)
     dp.callback_query.middleware(scheduler_middleware)
     dp.message.middleware(album_middleware)

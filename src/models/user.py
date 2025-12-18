@@ -14,3 +14,6 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String, nullable=True)
     utm_label: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    clicks: Mapped[int] = mapped_column(default=0, nullable=True)
+    last_pop_up: Mapped[int] = mapped_column(default=-1, nullable=True)
