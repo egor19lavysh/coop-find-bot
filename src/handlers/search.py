@@ -72,6 +72,16 @@ TEXT_GAMES = """
 Выбери игру и я покажу объявления тех, кто также сейчас ищет с кем бы поиграть👇
 """
 
+TEXT_EMOJI = """
+Рядом с каждым ником стоит оценка на основе прошлых игр. Расшифровка эмодзи:
+Вежливость — 🌸
+Навык — 🎮
+Командная игра — 🤝
+Уровень — ⭐️
+
+Рядом с ником стоит только показатель уровня ⭐️, значит пользователя еще не оценили и ты можешь стать первым!
+"""
+
 
 @router.message(Command("search"))
 async def start_search(message: Message, state: FSMContext):
@@ -704,3 +714,19 @@ async def get_profiles_by_filter(message: Message, state: FSMContext):
         await message.answer(text=TEXT_NO_PROFILES.format(game=game),
                              reply_markup=await get_back_to_games_kb("profiles"))
         await state.clear()
+
+@router.callback_query(F.data == "emoji_means")
+async def emoji_means(callback: CallbackQuery):
+    await callback.answer()
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+        text="Удалить",
+        callback_data="delete_emoji"
+    )]])
+
+    await callback.message.answer(TEXT_EMOJI, reply_markup=kb)
+
+@router.callback_query(F.data == "delete_emoji")
+async def delete_emoji(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()

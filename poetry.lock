@@ -572,6 +572,17 @@ files = [
 ]
 
 [[package]]
+name = "git-filter-repo"
+version = "2.47.0"
+description = "Quickly rewrite git repository history"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "git_filter_repo-2.47.0-py3-none-any.whl", hash = "sha256:2cd04929b9024e83e65db571cbe36aec65ead0cb5f9ec5abe42158654af5ad83"},
+    {file = "git_filter_repo-2.47.0.tar.gz", hash = "sha256:411b27e68a080c07a69c233cb526dbc2d848b09a72f10477f4444dd0822cf290"},
+]
+
+[[package]]
 name = "google-auth"
 version = "2.45.0"
 description = "Google Authentication Library"
@@ -1618,4 +1629,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "72e8f754fae1d29f5fb39ca16e7bcb26a0ae236a3fce202c96f4678a071e55be"
+content-hash = "250a2c058fd01237091113347353dbfacbfc1c85dba363dad0939344b3af1050"

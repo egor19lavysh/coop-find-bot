@@ -18,7 +18,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     
     for profile in current_profiles:
         if profile.polite is not None and profile.team_game is not None and profile.skill is not None:
-            stat = f"🌸{round(profile.polite, 1)} 🎮{round(profile.skill, 1)} 🤝{round(profile.team_game, 1)}"
+            stat = f"🌸{round(profile.polite)} 🎮{round(profile.skill)} 🤝{round(profile.team_game)}"
         else:
             stat = None
         
@@ -26,7 +26,7 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
         
         builder.add(
             InlineKeyboardButton(
-                text=f"{profile.nickname}, {rating_text} ⭐{profile.experience // 100 + 1}".strip(),
+                text=f"{profile.nickname}\n{rating_text} ⭐{profile.experience // 100 + 1}".strip(),
                 callback_data=f"read_profile_other_{profile.user_id}" if not need_filter else f"read_profile_other_filter_{profile.user_id}"
             )
         )
@@ -73,6 +73,13 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     
     if navigation_buttons:
         builder.row(*navigation_buttons)
+
+    builder.row(
+        InlineKeyboardButton(
+            text="Что означают эти эмодзи?",
+            callback_data=f"emoji_means"
+        )
+    )
     
     builder.row(
         InlineKeyboardButton(

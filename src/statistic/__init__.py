@@ -3,6 +3,7 @@ from google_sheet import GoogleSheetService
 from datetime import datetime
 
 
+
 class Statistic:
     def __init__(self, google_sheet: GoogleSheetService, user_repository: UserRepository):
         self._google_sheet = google_sheet
@@ -22,7 +23,7 @@ class Statistic:
         if not index:
             username = user_data.get('username')
             created_at = user_data.get('created_at')
-            index = await self.add_row(user_id=user_id, utm_label=utm_label, username=username, created_at=created_at)
+            index = await self.add_row(user_id, username, created_at)
         self._google_sheet.update_row(index, {col_index: "'+"})
 
     async def set_filled_profile(self, user_id: int):

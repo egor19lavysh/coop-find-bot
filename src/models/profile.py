@@ -9,7 +9,7 @@ class Profile(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(BigInteger)
-    nickname: Mapped[str]
+    nickname: Mapped[str] = mapped_column(String(8))
     telegram_tag: Mapped[str] = mapped_column(nullable=True)
     gender: Mapped[str] = mapped_column(nullable=True)
     games: Mapped[list["Game"]] = relationship("Game", back_populates="profile")

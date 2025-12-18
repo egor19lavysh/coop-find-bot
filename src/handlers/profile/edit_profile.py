@@ -140,7 +140,7 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
 @router.message(EditProfileForm.nickname)
 @require_profile
 async def update_nickname(message: Message, state: FSMContext):
-    if message.text:
+    if message.text and len(message.text) <= 8:
         await repository.update_nickname(user_id=message.from_user.id, nickname=message.text)
 
         data = await state.get_data()
@@ -155,7 +155,7 @@ async def update_nickname(message: Message, state: FSMContext):
             await state.clear()
 
     else:
-        await message.answer(TEXT_ANSWER_TYPE_ERROR)
+        await message.answer("Напиши свой ник текстом (до 8 символов)")
 
 @router.message(EditProfileForm.telegram_tag)
 @require_profile
