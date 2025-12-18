@@ -18,16 +18,15 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
     
     for profile in current_profiles:
         if profile.polite is not None and profile.team_game is not None and profile.skill is not None:
-            sa = (profile.polite + profile.team_game + profile.skill) / 3
-            rating = round(sa, 1)
+            stat = f"🌸{round(profile.polite, 1)} 🎮{round(profile.skill, 1)} 🤝{round(profile.team_game, 1)}"
         else:
-            rating = None
+            stat = None
         
-        rating_text = f" {rating}⭐" if rating is not None else ""
+        rating_text = stat if stat else ""
         
         builder.add(
             InlineKeyboardButton(
-                text=f"{profile.nickname}, {game}{rating_text}".strip(),
+                text=f"{profile.nickname}, {rating_text} ⭐{profile.experience // 100 + 1}".strip(),
                 callback_data=f"read_profile_other_{profile.user_id}" if not need_filter else f"read_profile_other_filter_{profile.user_id}"
             )
         )

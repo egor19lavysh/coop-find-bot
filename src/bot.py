@@ -25,12 +25,12 @@ dp = Dispatcher()
 async def main() -> None:
     bot = Bot(token=settings.TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
-    google_sheet = GoogleSheetService(credentials_path=settings.GOOGLE_SHEET_CREDENTIALS_PATH,
-                                      sheet_id=settings.GOOGLE_SHEET_ID,
-                                      worksheet=settings.GOOGLE_SHEET_WORKSHEET_NAME)
-    statistic = Statistic(google_sheet=google_sheet,
-                          user_repository=user_repository)
-    dp['statistic'] = statistic
+    # google_sheet = GoogleSheetService(credentials_path=settings.GOOGLE_SHEET_CREDENTIALS_PATH,
+    #                                   sheet_id=settings.GOOGLE_SHEET_ID,
+    #                                   worksheet=settings.GOOGLE_SHEET_WORKSHEET_NAME)
+    # statistic = Statistic(google_sheet=google_sheet,
+    #                       user_repository=user_repository)
+    # dp['statistic'] = statistic
 
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     
