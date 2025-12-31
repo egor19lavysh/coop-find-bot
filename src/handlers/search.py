@@ -301,7 +301,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
-            dt = datetime.now() + timedelta(hours=24)
+            dt = datetime.now() + timedelta(seconds=15)
             await schedule_estimate(
                 apscheduler=apscheduler,
                 time=dt,
@@ -571,18 +571,8 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
         elif text == "skip":
             await state.update_data(rank=None)
 
-        elif text in GAMES_RANKS:
+        elif text in GAMES_RANKS[game]:
             await state.update_data(rank=text)
-        elif game in ["Raid Shadow Legends", "WoR"]:
-            try:
-                float(text)
-            except Exception:
-                await callback.message.answer("Введите численное значение!")
-                return
-
-            await state.update_data(
-                rank=text
-            )
 
         await callback.message.answer("Выберите цель:", reply_markup=await get_goals_kb(True))
         await state.set_state(SearchForm.goal)

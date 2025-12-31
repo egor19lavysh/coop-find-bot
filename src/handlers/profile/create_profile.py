@@ -401,27 +401,31 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
 
     await callback.answer()
     text = callback.data.split("_")[-1]
-    if text == CALLBACK_BACK:
-        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
-        await state.set_state(ProfileForm.game)
-        return
-    
     
     if text:
-        if text == "skip":
-            rank = ""
+        if text == CALLBACK_BACK:
+            await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+            await state.set_state(ProfileForm.game)
+            return
+    
+        elif text == "skip":
+            await state.update_data(
+                game_rank=""
+            )
 
-        if text in GAMES_RANKS[game]:
+        elif text in GAMES_RANKS[game]:
             await state.update_data(
                 game_rank=text
             )
-            await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
-            await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
-            await state.set_state(ProfileForm.gallery)
+
         else:
             await callback.message.answer("Выбрано некорректное значение!")
             await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
             return
+        
+        await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
+        await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
+        await state.set_state(ProfileForm.gallery)
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.rank)

@@ -293,23 +293,13 @@ async def get_games_filter_search_kb() -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text="Назад", callback_data="start_search"))
     return builder.as_markup()
 
-# async def get_ranks_kb(game: str, with_back: bool = False) -> ReplyKeyboardMarkup:
-#     keyboard = []
-#     if game in GAMES_RANKS:
-#         for rank in GAMES_RANKS[game]:
-#             keyboard.append([KeyboardButton(text=rank)])
-    
-#     keyboard.append([KeyboardButton(text="Пропустить")])
 
-#     if with_back:
-#         keyboard.append([KeyboardButton(text="Назад")])
-#     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []
     for i in range(len(GOALS_LIST) // 2):
-        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[i], callback_data=f"goal_{GOALS_LIST[i]}"),
-                         InlineKeyboardButton(text=GOALS_LIST[i+1], callback_data=f"goal_{GOALS_LIST[i+1]}"),
+        keyboard.append([InlineKeyboardButton(text=GOALS_LIST[2*i], callback_data=f"goal_{GOALS_LIST[2*i]}"),
+                         InlineKeyboardButton(text=GOALS_LIST[2*i+1], callback_data=f"goal_{GOALS_LIST[2*i+1]}"),
                          ])
         
     if len(GOALS_LIST) % 2 == 1:
