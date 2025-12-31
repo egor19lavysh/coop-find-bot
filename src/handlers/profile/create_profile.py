@@ -10,6 +10,8 @@ from handlers.menu import cmd_menu
 from .edit_profile import start_edit_profile_message
 from utils.creation_process import restrict_access, CMDS
 from typing import Union
+from statistic import Statistic
+import asyncio
 
 
 router = Router()
@@ -860,7 +862,8 @@ async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext
 
 @router.message(ProfileForm.is_active)
 @router.callback_query(ProfileForm.is_active)
-async def save_status(event: Union[CallbackQuery, Message], state: FSMContext):
+async def save_status(event: Union[CallbackQuery, Message], state: FSMContext, statistic: Statistic):
+    asyncio.create_task(statistic.set_filled_profile(event.from_user.id))
     if isinstance(event, Message):
         if event.text in CMDS:
             await restrict_access(event, TEXT_ALLOW_INVITATIONS, get_status_kb, with_back=True)

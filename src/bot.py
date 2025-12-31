@@ -1,5 +1,7 @@
 import asyncio
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message
+from aiogram import types
 from config import settings
 import logging
 from handlers import routers
@@ -14,12 +16,18 @@ from aiogram.enums import ParseMode
 from google_sheet import GoogleSheetService
 from statistic import Statistic
 from repositories.user_repository import user_repository
-
+from aiogram.filters.command import Command
 
 
 logging.basicConfig(level=logging.INFO)
 
 dp = Dispatcher()
+
+
+@dp.message(F.photo)
+async def handle_media(message: Message):
+    if message.chat.id == settings.PRIVATE_PHOTO_GROUP_ID:
+        await message.reply(message.photo[-1].file_id)
 
 # Run the bot
 async def main() -> None:

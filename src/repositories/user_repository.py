@@ -26,31 +26,36 @@ class UserRepository:
             await session.execute(query)
             await session.commit()
 
-    async def get_user(self, user_id: int) -> User | None:
+    async def get_users(self) -> list[User]:
+        async with self.session_factory() as session:
+            result = await session.execute(select(User))
+            return result.scalars().all()
+
+    async def get_user(self, user_id: int) -> list[User]:
         query = select(User).where(User.user_id == user_id)
         async with self.session_factory() as session:
             result = await session.execute(query)
-            return result.scalar_one_or_none()
+            return result.scalars().all() # Костыль из-за стороннего разработчика
         
     async def update_clicks(self, user_id: int, clicks: int = 0) -> None:
         async with self.session_factory() as session:
-            if await self.get_user(user_id=user_id):
-                await session.execute(
+            #if await self.get_user(user_id=user_id):
+            await session.execute(
                     update(User)
                     .where(User.user_id == user_id)
                     .values(clicks=clicks)
                 )
-                await session.commit()
+            await session.commit()
 
     async def update_last_pop_up(self, user_id: int, pop_up: int) -> None:
         async with self.session_factory() as session:
-            if await self.get_user(user_id=user_id):
-                await session.execute(
+            #if await self.get_user(user_id=user_id):
+            await session.execute(
                     update(User)
                     .where(User.user_id == user_id)
                     .values(last_pop_up=pop_up)
                 )
-                await session.commit()
+            await session.commit()
 
 
     async def get_last_utm(self, user_id: int) -> dict:

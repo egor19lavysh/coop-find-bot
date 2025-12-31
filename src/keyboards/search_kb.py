@@ -31,19 +31,19 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
             )
         )
     
-    profiles_count = len(current_profiles)
-    sizes = []
-    if profiles_count < per_page:
-        for _ in range(profiles_count // 2):
-            sizes.append(2)
-
-    if profiles_count % 2 != 0:
-        sizes.append(profiles_count % 2)
     
-    builder.adjust(*sizes)
-
-
     
+    builder.adjust(2)
+
+    total_pages = (len(profiles) - 1) // per_page + 1 if profiles else 1
+    builder.row(
+        InlineKeyboardButton(
+            text=f"{page + 1}/{total_pages}",
+            callback_data="current_page"
+        )
+    )
+
+
     navigation_buttons = []
     
 
@@ -54,20 +54,27 @@ async def get_profiles_kb(profiles: list[Profile],  game: str, page: int = 0, pe
                 callback_data=f"profiles_page_{page - 1}"
             )
         )
-    
-    total_pages = (len(profiles) - 1) // per_page + 1 if profiles else 1
-    navigation_buttons.append(
-        InlineKeyboardButton(
-            text=f"{page + 1}/{total_pages}",
-            callback_data="current_page"
+    else:
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="◀️ Назад",
+                callback_data=f"blank"
+            )
         )
-    )
+    
     
     if end_idx < len(profiles):
         navigation_buttons.append(
             InlineKeyboardButton(
                 text="Вперед ▶️",
                 callback_data=f"profiles_page_{page + 1}"
+            )
+        )
+    else:
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="Вперед ▶️",
+                callback_data=f"blank"
             )
         )
     
@@ -125,6 +132,15 @@ async def get_clans_kb(clans, page=0, per_page=18):
         ))
 
     builder.adjust(2)
+
+    total_pages = (len(clans) - 1) // per_page + 1 if clans else 1
+    builder.row(
+        InlineKeyboardButton(
+            text=f"{page + 1}/{total_pages}",
+            callback_data="current_page"
+        )
+    )
+    
     
     navigation_buttons = []
     
@@ -135,20 +151,27 @@ async def get_clans_kb(clans, page=0, per_page=18):
                 callback_data=f"clans_page_{page - 1}"
             )
         )
-
-    total_pages = (len(clans) - 1) // per_page + 1 if clans else 1
-    navigation_buttons.append(
-        InlineKeyboardButton(
-            text=f"{page + 1}/{total_pages}",
-            callback_data="current_page"
+    else:
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="◀️ Назад",
+                callback_data=f"blank"
+            )
         )
-    )
+
     
     if end_idx < len(clans):
         navigation_buttons.append(
             InlineKeyboardButton(
                 text="Вперед ▶️",
                 callback_data=f"clans_page_{page + 1}"
+            )
+        )
+    else:
+        navigation_buttons.append(
+            InlineKeyboardButton(
+                text="Вперед ▶️",
+                callback_data=f"blank"
             )
         )
     

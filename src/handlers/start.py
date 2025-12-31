@@ -28,7 +28,8 @@ async def cmd_start(message: Message, command: CommandObject, state: FSMContext,
     user_id = message.from_user.id
     chat_id = message.chat.id
     utm_label = command.args or 'None'
-    await user_repository.add_user(user_id=user_id,
+    if not (await user_repository.get_user(user_id)):
+        await user_repository.add_user(user_id=user_id,
                                    username=message.from_user.username,
                                    first_name=message.from_user.first_name,
                                    last_name=message.from_user.last_name,
