@@ -211,12 +211,16 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
         elif game == "Warcraft":
             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
-        else:
-            if game == "Raid Shadow Legends":
-                await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
-            else:
-                await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+        elif game == "Raid Shadow Legends":
+            await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
             await state.set_state(ProfileForm.num_rank)
+        elif game == "WoR":
+                await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+                await state.set_state(ProfileForm.num_rank)
+        elif game == "Raven 2":
+                from utils.raven import CLUSTER_TEXT
+                await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
+                await state.set_state(ProfileForm.raven_cluster)
 
         await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
     else:

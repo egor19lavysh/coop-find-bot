@@ -8,8 +8,11 @@ from handlers.clan.create_clan import router as create_clan_router
 from handlers.clan.clan import router as clan_router
 from handlers.clan.edit_clan import router as edit_clan_router
 from handlers.profile.edit_profile import router as edit_profile_router
+from handlers.profile.games_handlers.raven import router as raven_router
+from handlers.profile.games_handlers.donate import router as donate_router
 
-routers = [start_router, create_clan_router, create_profile_router, menu_router,
+
+routers = [start_router, create_clan_router, create_profile_router, raven_router, donate_router, menu_router,
             profile_router, search_profile, estimate_router,
             clan_router, edit_profile_router,
             edit_clan_router]

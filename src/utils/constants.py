@@ -15,7 +15,9 @@ GAME_LIST = {
     "Mobile Legends": "📱 Mobile Legends 📱",
     "Fortnite": "🏗 Fortnite 🏗",
     "Raid Shadow Legends": "💎 Raid Shadow Legends 💎",
-    "WoR": "🌠 WoR 🌠"
+    "WoR": "🌠 WoR 🌠",
+    "Raven 2": "🔥 Raven 2 🔥",
+    "Lineage 2M": "🏰 Lineage 2M 🏰"
 }
 
 PROFILE_SAMPLE = """

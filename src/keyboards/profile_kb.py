@@ -1,8 +1,9 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils.constants import GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENIENT_TIME
+from utils.constants import BUDGETS, GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENIENT_TIME
 from utils.ranks import *
 from models.profile import Game
+from utils.raven import CLUSTERS, SERVERS, CLASSES
 
 TEXT_BACK = "Назад"
 
@@ -418,3 +419,68 @@ async def get_delete_confirm_kb() -> InlineKeyboardMarkup:
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+async def get_raven_clusters_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for cluster in CLUSTERS:
+        builder.add(InlineKeyboardButton(
+            text=cluster,
+            callback_data=f"raven_cluster_{cluster}"
+        ))
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="raven_cluster_back"
+        ))
+
+    return builder.as_markup()
+
+async def get_raven_servers_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for server in SERVERS:
+        builder.add(InlineKeyboardButton(
+            text=server,
+            callback_data=f"raven_server_{server}"
+        ))
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="raven_server_back"
+        ))
+    return builder.as_markup()
+
+async def get_raven_classes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for cls in CLASSES:
+        builder.add(InlineKeyboardButton(
+            text=cls,
+            callback_data=f"raven_class_{cls}"
+        ))
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="raven_class_back"
+        ))
+    return builder.as_markup()
+
+async def get_raven_budgets_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for budget in BUDGETS:
+        builder.add(InlineKeyboardButton(
+            text=budget,
+            callback_data=f"budget_{budget}"
+        ))
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="budget_back"
+        ))
+    return builder.as_markup()
