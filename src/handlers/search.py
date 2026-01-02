@@ -721,6 +721,3 @@ async def delete_emoji(callback: CallbackQuery):
     await callback.answer()
     await callback.message.delete()
 
-@router.callback_query(F.data == "blank")
-async def blank(callback: CallbackQuery):
-    await callback.answer()

@@ -19,6 +19,10 @@ TEXT_START = ("Салют, игрок!🔥\n"
              "Готов найти тимейтов? Тогда создадим твою анкету. "
              "Напиши свой никнейм, который будет отображаться в анкете")
 
+@router.callback_query(F.data == "blank")
+async def blank(callback: CallbackQuery):
+    await callback.answer()
+
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, command: CommandObject, state: FSMContext, statistic: Statistic):

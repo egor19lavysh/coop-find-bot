@@ -34,11 +34,14 @@ async def donate_handler(
         data = await state.get_data()
         game = data["game"]
 
-        if game == "Raven 2":
-            await callback.message.answer(
+        await callback.message.answer(
                 text=STATS_TEXT,
                 reply_markup=await get_skip_keyboard(with_back=True))
+        
+        if game == "Raven 2":
             await state.set_state(ProfileForm.raven_stats)
+        else:
+            await state.set_state(ProfileForm.lineage_stats)
         return
     
     await state.update_data(donate=choice)
@@ -59,6 +62,12 @@ async def donate_handler(
             await state.update_data(
                 game_rank=rank
             )
+        else:
+            rank = f'{data["lineage_server"]}${data["lineage_rasa"]}${data["lineage_class"]}${data["lineage_level"]}${data["lineage_stats"]}${choice}$-'
+            print(rank)
+            await state.update_data(
+                game_rank=rank
+            )
 
         await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(ProfileForm.gallery)
@@ -71,7 +80,6 @@ async def budget_handler(callback: CallbackQuery, state: FSMContext):
     budget = callback.data.split("_")[-1]
 
     if budget == "back":
-        await callback.message.delete()
         await callback.message.answer(
             text=DONATE_TEXT,
             reply_markup=await get_confirmation_kb(with_back=True))
@@ -89,6 +97,12 @@ async def budget_handler(callback: CallbackQuery, state: FSMContext):
 
     if game == "Raven 2":
         rank = f'{data["raven_cluster"]}${data["raven_server"]}${data["raven_class"]}${data["raven_level"]}${data["raven_stats"]}$Да${budget}'
+        print(rank)
+        await state.update_data(
+            game_rank=rank
+        )
+    else:
+        rank = f'{data["lineage_server"]}${data["lineage_rasa"]}${data["lineage_class"]}${data["lineage_level"]}${data["lineage_stats"]}$Да${budget}'
         print(rank)
         await state.update_data(
             game_rank=rank

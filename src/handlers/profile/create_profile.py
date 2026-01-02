@@ -221,6 +221,10 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
                 from utils.raven import CLUSTER_TEXT
                 await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
                 await state.set_state(ProfileForm.raven_cluster)
+        elif game == "Lineage 2M":
+                from utils.lineage import SERVER_TEXT
+                await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True))
+                await state.set_state(ProfileForm.lineage_server)
 
         await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
     else:

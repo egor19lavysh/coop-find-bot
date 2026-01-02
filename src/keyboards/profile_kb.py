@@ -4,6 +4,7 @@ from utils.constants import BUDGETS, GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENI
 from utils.ranks import *
 from models.profile import Game
 from utils.raven import CLUSTERS, SERVERS, CLASSES
+from utils.lineage import SERVER_TEXT, West, East, JP, RASES, CLASSES as LINEAGE_CLASSES
 
 TEXT_BACK = "Назад"
 
@@ -482,5 +483,140 @@ async def get_raven_budgets_kb(with_back: bool = False) -> InlineKeyboardMarkup:
         builder.row(InlineKeyboardButton(
             text=TEXT_BACK,
             callback_data="budget_back"
+        ))
+    return builder.as_markup()
+
+
+async def get_lineage_servers_pt_1(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(InlineKeyboardButton(
+        text="RU/EU East",
+        callback_data="blank"
+    ))
+
+    for server in East:
+        builder.add(InlineKeyboardButton(
+            text=server,
+            callback_data=f"lineage_server_{server}"
+        ))
+
+
+    builder.row(InlineKeyboardButton(
+        text="NA/EU West",
+        callback_data="blank"
+    ))
+
+    for server in West:
+        builder.add(InlineKeyboardButton(
+            text=server,
+            callback_data=f"lineage_server_{server}"
+        ))
+
+    
+    builder.row(InlineKeyboardButton(
+        text="1/2",
+        callback_data="blank"
+    ))
+
+    builder.add(InlineKeyboardButton(
+            text="Назад",
+            callback_data=f"blank"
+        ))
+
+    builder.add(InlineKeyboardButton(
+            text="Вперед",
+            callback_data=f"get_lineage_servers_pt_2"
+        ))
+
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text="Обратно",
+            callback_data="lineage_server_back"
+        ))
+
+        builder.adjust(1, 2, 2, 1, 2, 2, 1, 2, 1)
+    else:
+        builder.adjust(1, 2, 2, 1, 2, 2, 1, 2)
+
+    return builder.as_markup()
+
+async def get_lineage_servers_pt_2(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(InlineKeyboardButton(
+        text="JP",
+        callback_data="blank"
+    ))
+
+    for server in JP:
+        builder.add(InlineKeyboardButton(
+            text=server,
+            callback_data=f"lineage_server_{server}"
+        ))
+
+
+    builder.row(InlineKeyboardButton(
+        text="2/2",
+        callback_data="blank"
+    ))
+
+    builder.add(InlineKeyboardButton(
+            text="Назад",
+            callback_data=f"get_lineage_servers_pt_1"
+        ))
+
+    builder.add(InlineKeyboardButton(
+            text="Вперед",
+            callback_data=f"blank"
+        ))
+
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text="Обратно",
+            callback_data="lineage_server_back"
+        ))
+        builder.adjust(1, 2, 2, 2, 2, 2, 1, 2, 1)
+    else:
+        builder.adjust(1, 2, 2, 2, 2, 2, 1, 2)
+    
+    
+
+    return builder.as_markup()
+
+
+async def get_lineage_rases_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for rase in RASES:
+        builder.add(InlineKeyboardButton(
+            text=rase,
+            callback_data=f"lineage_rase_{rase}"
+        ))
+
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="lineage_rase_back"
+        ))
+
+    return builder.as_markup()
+
+async def get_lineage_classes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for cls in LINEAGE_CLASSES:
+        builder.add(InlineKeyboardButton(
+            text=cls,
+            callback_data=f"lineage_class_{cls}"
+        ))
+    builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="lineage_class_back"
         ))
     return builder.as_markup()
