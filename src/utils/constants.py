@@ -104,3 +104,13 @@ BUDGETS = [
 ]
 
 TRANSFER_TEXT = "Готов к трансферу на другой сервер?"
+
+RAVEN_PROFILE_ADD_INFO = """
+<b>Сервер</b>: {server}
+<b>Класс</b>: {class_}
+<b>Уровень</b>: {level}
+<b>Удобное время</b>: {time}
+<b>Донат</b>: {donate}
+<b>О себе:</b> {about}
+<b>Цели:</b> {goal}
+"""

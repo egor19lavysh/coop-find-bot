@@ -96,13 +96,13 @@ async def budget_handler(callback: CallbackQuery, state: FSMContext):
     game = data["game"]
 
     if game == "Raven 2":
-        rank = f'{data["raven_cluster"]}${data["raven_server"]}${data["raven_class"]}${data["raven_level"]}${data["raven_stats"]}$Да${budget}'
+        rank = f'{data["raven_cluster"]}/{data["raven_server"]}/{data["raven_class"]}/{data["raven_level"]}/{data["raven_stats"]}/Да/{budget}'
         print(rank)
         await state.update_data(
             game_rank=rank
         )
     else:
-        rank = f'{data["lineage_server"]}${data["lineage_rasa"]}${data["lineage_class"]}${data["lineage_level"]}${data["lineage_stats"]}$Да${budget}'
+        rank = f'{data["lineage_server"]}/{data["lineage_rasa"]}/{data["lineage_class"]}/{data["lineage_level"]}/{data["lineage_stats"]}/Да/{budget}'
         print(rank)
         await state.update_data(
             game_rank=rank

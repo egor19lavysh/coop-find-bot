@@ -8,6 +8,7 @@ from utils.constants import *
 from repositories.profile_repository import profile_repository as repository
 from .create_profile import start_profile
 from statistic import Statistic
+from utils.profile_templates import get_profile_template, get_profile_template_no_rank
 import asyncio
 
 
@@ -53,10 +54,14 @@ async def update_profile_callback(callback: CallbackQuery):
 async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
     asyncio.create_task(statistic.set_open_profile(callback.from_user.id))
 
+    await callback.answer()
     await callback.message.delete()
 
     callback_parts = callback.data.split("_")
     user_id = int(callback_parts[-1])
+    data = await state.get_data()
+
+
     if "filter" in callback_parts:
         type_user = "other"
     else:
@@ -64,36 +69,14 @@ async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: St
 
 
     if type_user == "other":
-        data = await state.get_data()
         if "game" in data:
             game = data["game"]
         else:
             await callback.message.answer("Я потерял игру, по которой производится поиск. Попробуйте заново")
-            await callback.answer()
             return 
     
 
     if profile := await repository.get_profile(user_id=user_id):
-
-        games = {game.name: game.rank for game in profile.games}
-
-        user_rank = None
-        if type_user == "other":
-            if games[game]:
-                if game != "Warcraft":
-                    user_rank = f"\n<b>Ранг:</b> {games[game]}"
-                else:
-                    user_rank = f"\n<b>Ранг:</b>\n"
-                    subranks = []
-                    for subrank in games[game].split(";")[:-1]:
-                        mode, info = subrank.split("/")
-                        subranks.append(f"- {mode}: {info}")
-                    user_rank += "\n".join(subranks)
-            else:
-                user_rank = f"\n<b>Ранг:</b> Не указан"
-
-        else:
-            user_rank = ""
 
         if type_user == "other":
             keyboard = await get_interaction_kb(user_id=user_id, game=game) if "filter" not in callback.data else await get_interaction_kb(user_id=user_id, game=game, need_filter=True)
@@ -105,19 +88,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: St
             
         prefix = TEXT_YOUR_CHOICE.format(name=profile.nickname) if type_user == "other" else ""
 
-        profile_text = prefix + FULL_PROFILE_SAMPLE.format(
-            nickname=profile.nickname,
-            telegram_tag= "@" + profile.telegram_tag if profile.telegram_tag else "Нет",
-            gender=profile.gender if profile.gender else "Нет",
-            level=profile.experience // 100 + 1,
-            polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
-            games=profile.games_str,
-            rank=user_rank,
-            add_info=PROFILE_ADD_INFO.format(time=", ".join(profile.convenient_time) if profile.convenient_time else "Не указано", 
-                                             about=profile.about, goal=", ".join(profile.goals) if profile.goals else "Не указаны")
-        )
+        profile_text = prefix + await get_profile_template(profile, game) if type_user == "other" else prefix + await get_profile_template_no_rank(profile)
 
         if profile.photo:
             try:
