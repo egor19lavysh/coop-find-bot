@@ -516,6 +516,7 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
             await state.set_state(EditProfileForm.raven_cluster)
         else:
             from utils.lineage import SERVER_TEXT
+            await state.update_data(lineage_with_back=False)
             await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1())
             await state.set_state(EditProfileForm.lineage_server)
 

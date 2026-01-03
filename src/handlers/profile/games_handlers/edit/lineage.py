@@ -1,7 +1,7 @@
 from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
-from states.create_profile import *
+from states.edit_profile import *
 from keyboards.profile_kb import *
 from handlers.profile.create_profile import TEXT_GAME, TEXT_BACK
 from utils.creation_process import restrict_access, CMDS
@@ -13,46 +13,14 @@ from utils.raven import LEVEL_TEXT, STATS_TEXT
 
 router = Router()
 
-@router.callback_query(F.data.startswith("get_lineage_servers_pt_"))
-async def get_lineage_servers_handler(
-    query: CallbackQuery,
-    state: FSMContext
-):
-    """Handler to send Lineage servers keyboard parts."""
-    part = query.data.split("_")[-1]
-    data = await state.get_data()
-
-    with_back = data.get("lineage_with_back", True)
-
-    if part == "1":
-        kb = await get_lineage_servers_pt_1(with_back=with_back)
-    else:
-        kb = await get_lineage_servers_pt_2(with_back=with_back)
-
-    await query.message.edit_reply_markup(reply_markup=kb)
-
-
-@router.message(ProfileForm.lineage_server)
-@router.callback_query(ProfileForm.lineage_server)
+@router.callback_query(EditProfileForm.lineage_server)
 async def lineage_server_handler(
-    event: Union[Message, CallbackQuery],
+    callback: Union[Message, CallbackQuery],
     state: FSMContext,
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, SERVER_TEXT, get_lineage_servers_pt_1, with_back=True)
-            return
-    else:
-        callback = event
-
     await callback.answer()
 
     server = callback.data.split("_")[-1]
-
-    if server == "back":
-        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
-        await state.set_state(ProfileForm.game)
-        return
 
     await state.update_data(lineage_server=server)
     await callback.message.edit_text(
@@ -64,28 +32,19 @@ async def lineage_server_handler(
         text=RASA_TEXT,
         reply_markup=await get_lineage_rases_kb(with_back=True)
     )
-    await state.set_state(ProfileForm.lineage_rasa)
+    await state.set_state(EditProfileForm.lineage_rasa)
 
-@router.message(ProfileForm.lineage_rasa)
-@router.callback_query(ProfileForm.lineage_rasa)
+@router.callback_query(EditProfileForm.lineage_rasa)
 async def lineage_rasa_handler(
-    event: Union[Message, CallbackQuery],
+    callback: Union[Message, CallbackQuery],
     state: FSMContext,
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, RASA_TEXT, get_lineage_rases_kb, with_back=True)
-            return
-    else:
-        callback = event
-
     await callback.answer()
-
     rasa = callback.data.split("_")[-1]
 
     if rasa == "back":
-        await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True))
-        await state.set_state(ProfileForm.lineage_server)
+        await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1())
+        await state.set_state(EditProfileForm.lineage_server)
         return
 
     await state.update_data(lineage_rasa=rasa)
@@ -98,28 +57,19 @@ async def lineage_rasa_handler(
         text=CLASS_TEXT,
         reply_markup=await get_lineage_classes_kb(with_back=True)
     )
-    await state.set_state(ProfileForm.lineage_class)
+    await state.set_state(EditProfileForm.lineage_class)
 
-@router.message(ProfileForm.lineage_class)
-@router.callback_query(ProfileForm.lineage_class)
+@router.callback_query(EditProfileForm.lineage_class)
 async def lineage_class_handler(
-    event: Union[Message, CallbackQuery],
+    callback: Union[Message, CallbackQuery],
     state: FSMContext,
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, CLASS_TEXT, get_lineage_classes_kb, with_back=True)
-            return
-    else:
-        callback = event
-
-    await callback.answer()
-
     l_class = callback.data.split("_")[-1]
+    await callback.answer()
 
     if l_class == "back":
         await callback.message.answer(text=RASA_TEXT, reply_markup=await get_lineage_rases_kb(with_back=True))
-        await state.set_state(ProfileForm.lineage_rasa)
+        await state.set_state(EditProfileForm.lineage_rasa)
         return
 
     await state.update_data(lineage_class=l_class)
@@ -131,17 +81,13 @@ async def lineage_class_handler(
     await callback.message.answer(
         text=LEVEL_TEXT,
         reply_markup=await get_back_kb())
-    await state.set_state(ProfileForm.lineage_level)
+    await state.set_state(EditProfileForm.lineage_level)
 
-@router.message(ProfileForm.lineage_level)
+@router.message(EditProfileForm.lineage_level)
 async def lineage_level_entered(
     message: Message,
     state: FSMContext
 ):
-    if message.text in CMDS:
-        await restrict_access(message, LEVEL_TEXT)
-        return
-    
     level_text = message.text.strip()
 
     if level_text == TEXT_BACK:
@@ -149,7 +95,7 @@ async def lineage_level_entered(
             text=CLASS_TEXT,
             reply_markup=await get_lineage_classes_kb(with_back=True)
         )
-        await state.set_state(ProfileForm.lineage_class)
+        await state.set_state(EditProfileForm.lineage_class)
         return
 
     if not level_text.isdigit():
@@ -170,17 +116,13 @@ async def lineage_level_entered(
     await message.answer(
         text=STATS_TEXT,
         reply_markup=await get_skip_keyboard(with_back=True))
-    await state.set_state(ProfileForm.lineage_stats)
+    await state.set_state(EditProfileForm.lineage_stats)
 
-@router.message(ProfileForm.lineage_stats)
+@router.message(EditProfileForm.lineage_stats)
 async def lineage_stats_entered(
     message: Message,
     state: FSMContext
 ):
-    if message.text in CMDS:
-        await restrict_access(message, STATS_TEXT, get_skip_keyboard, with_back=True)
-        return
-    
     stats_text = message.text.strip()
 
     if stats_text == TEXT_BACK:
@@ -188,7 +130,7 @@ async def lineage_stats_entered(
             text=LEVEL_TEXT,
             reply_markup=await get_back_kb()
         )
-        await state.set_state(ProfileForm.lineage_level)
+        await state.set_state(EditProfileForm.lineage_level)
         return
 
     if stats_text.lower() == "пропустить":
@@ -205,4 +147,4 @@ async def lineage_stats_entered(
         await state.update_data(lineage_stats=stats_text)
         
     await message.answer(DONATE_TEXT, reply_markup=await get_confirmation_kb(with_back=True))
-    await state.set_state(ProfileForm.donate)
+    await state.set_state(EditProfileForm.donate)

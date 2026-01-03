@@ -63,8 +63,6 @@ async def get_raven2_profile_template(profile: Profile, game: str) -> str:
     if games.get(game, False):
         parts = games[game].split("@")
 
-        print(parts)
-
         if game == "Raven 2":
             server = f"{parts[0]} - {parts[1]}"
         else:
@@ -77,8 +75,8 @@ async def get_raven2_profile_template(profile: Profile, game: str) -> str:
 
         level = parts[3]
 
-        if parts[-2] == "Да":
-            donate = f"{parts[-2]}, {parts[-1]}"
+        if parts[-3] == "Да":
+            donate = f"{parts[-3]}, {parts[-2]}"
         else:
             donate = "Нет"
 
