@@ -1,30 +1,27 @@
 from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
-from states.create_profile import *
+from states.edit_profile import *
 from keyboards.profile_kb import *
 from handlers.profile.create_profile import TEXT_GAME, TEXT_BACK, TEXT_GALLERY
 from utils.creation_process import restrict_access, CMDS
 from typing import Union
 from utils.raven import *
 from utils.constants import DONATE_TEXT, BUDGET_TEXT, BUDGETS, TRANSFER_TEXT
+from repositories.profile_repository import profile_repository as repository
 
 
 router = Router()
 
-@router.message(ProfileForm.donate)
-@router.callback_query(ProfileForm.donate)
+TEXT_SUCCESS_EDIT = "Изменения успешно сохранены! ✅"
+TEXT_BACK_TO_MENU = "Вернуться назад?"
+
+
+@router.callback_query(EditProfileForm.donate)
 async def donate_handler(
-    event: Union[CallbackQuery, Message],
+    callback: Union[CallbackQuery, Message],
     state: FSMContext
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, DONATE_TEXT, get_confirmation_kb, with_back=True)
-            return
-    else:
-        callback = event
-
     await callback.answer()
 
     choice = callback.data.split("_")[-1]
@@ -39,9 +36,9 @@ async def donate_handler(
                 reply_markup=await get_skip_keyboard(with_back=True))
         
         if game == "Raven 2":
-            await state.set_state(ProfileForm.raven_stats)
+            await state.set_state(EditProfileForm.raven_stats)
         else:
-            await state.set_state(ProfileForm.lineage_stats)
+            await state.set_state(EditProfileForm.lineage_stats)
         return
     
     await state.update_data(donate=choice)
@@ -54,27 +51,19 @@ async def donate_handler(
         await callback.message.answer(
             text=BUDGET_TEXT,
             reply_markup=await get_raven_budgets_kb(with_back=True))
-        await state.set_state(ProfileForm.budget)
+        await state.set_state(EditProfileForm.budget)
     else:
         await state.update_data(budget="-")
         await callback.message.answer(text=TRANSFER_TEXT, reply_markup=await get_confirmation_kb(with_back=True, skip=True))
-        await state.set_state(ProfileForm.transfer)
+        await state.set_state(EditProfileForm.transfer)
     
 
 
-@router.message(ProfileForm.budget)
-@router.callback_query(ProfileForm.budget)
+@router.callback_query(EditProfileForm.budget)
 async def budget_handler(
-    event: Union[CallbackQuery, Message],
+    callback: Union[CallbackQuery, Message],
     state: FSMContext
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, DONATE_TEXT, get_confirmation_kb, with_back=True)
-            return
-    else:
-        callback = event
-
     await callback.answer()
 
     budget = callback.data.split("_")[-1]
@@ -83,7 +72,7 @@ async def budget_handler(
         await callback.message.answer(
             text=DONATE_TEXT,
             reply_markup=await get_confirmation_kb(with_back=True))
-        await state.set_state(ProfileForm.donate)
+        await state.set_state(EditProfileForm.donate)
         return
     
     await state.update_data(budget=budget)
@@ -93,22 +82,14 @@ async def budget_handler(
     )
 
     await callback.message.answer(text=TRANSFER_TEXT, reply_markup=await get_confirmation_kb(with_back=True, skip=True))
-    await state.set_state(ProfileForm.transfer)
+    await state.set_state(EditProfileForm.transfer)
         
 
-@router.message(ProfileForm.transfer)
-@router.callback_query(ProfileForm.transfer)
+@router.callback_query(EditProfileForm.transfer)
 async def transfer_handler(
-    event: Union[CallbackQuery, Message],
+    callback: Union[CallbackQuery, Message],
     state: FSMContext
 ):
-    if isinstance(event, Message):
-        if event.text in CMDS:
-            await restrict_access(event, DONATE_TEXT, get_confirmation_kb, with_back=True)
-            return
-    else:
-        callback = event
-
     await callback.answer()
 
     transfer = callback.data.split("_")[-1]
@@ -117,7 +98,7 @@ async def transfer_handler(
         await callback.message.answer(
             text=DONATE_TEXT,
             reply_markup=await get_confirmation_kb(with_back=True))
-        await state.set_state(ProfileForm.donate)
+        await state.set_state(EditProfileForm.donate)
         return
     elif transfer == "skip":
         transfer = "-"
@@ -141,6 +122,21 @@ async def transfer_handler(
             game_rank=rank
         )
 
-    await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(with_back=True))
-    await state.set_state(ProfileForm.gallery)
+    if "process" in data:
+        if data["process"] in ("editing_rank", "creating_profile"):
+            await repository.update_game_rank(user_id=callback.from_user.id, game=game, rank=rank)
+            if data["process"] == "creating_profile":
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer("Вернуться к проверке анкеты?", 
+                                                        reply_markup=await get_back_to_check_kb())
+                await state.set_state(EditProfileForm.clear)
+                                
+            else:
+                await callback.message.answer(TEXT_SUCCESS_EDIT, reply_markup=ReplyKeyboardRemove())
+                await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
+                await state.clear()
+
+        elif data["process"] == "adding_new_game":
+            await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
+            await state.set_state(EditProfileForm.gallery)
 

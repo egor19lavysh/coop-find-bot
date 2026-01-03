@@ -503,12 +503,21 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
     elif game == "Warcraft":
         await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
         await state.set_state(EditProfileForm.add_warcraft_mode)
-    else:
+    elif game in ("Raid Shadow Legends", "WoR"):
         if game == "Raid Shadow Legends":
             await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
         else:
             await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
         await state.set_state(EditProfileForm.num_rank)
+    elif game in ("Raven 2", "Lineage 2M"):
+        if game == "Raven 2":
+            from utils.raven import CLUSTER_TEXT
+            await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb())
+            await state.set_state(EditProfileForm.raven_cluster)
+        else:
+            from utils.lineage import SERVER_TEXT
+            await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1())
+            await state.set_state(EditProfileForm.lineage_server)
 
 @router.message(EditProfileForm.num_rank)
 async def save_num_rank(message: Message, state: FSMContext):

@@ -61,7 +61,7 @@ async def get_raven2_profile_template(profile: Profile, game: str) -> str:
     games = {game.name: game.rank for game in profile.games}
 
     if games.get(game, False):
-        parts = games[game].split("/")
+        parts = games[game].split("@")
 
         print(parts)
 

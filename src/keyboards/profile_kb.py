@@ -67,11 +67,14 @@ async def get_photo_kb(with_back: bool = True) -> ReplyKeyboardMarkup:
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
 
-async def get_confirmation_kb(with_back: bool = True) -> InlineKeyboardMarkup:
+async def get_confirmation_kb(with_back: bool = True, skip: bool = False) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text="Да", callback_data="confirm_Да")],
         [InlineKeyboardButton(text="Нет", callback_data="confirm_Нет")]
     ]
+
+    if skip:
+        buttons.append([InlineKeyboardButton(text="Пропустить", callback_data="confirm_skip")])
     
     if with_back:
         buttons.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"confirm_back")])
