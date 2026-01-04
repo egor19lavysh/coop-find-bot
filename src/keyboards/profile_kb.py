@@ -8,10 +8,13 @@ from utils.lineage import SERVER_TEXT, West, East, JP, RASES, CLASSES as LINEAGE
 
 TEXT_BACK = "Назад"
 
-async def get_skip_keyboard(with_back: bool = True) -> ReplyKeyboardMarkup:
+async def get_skip_keyboard(with_back: bool = True, skip: bool = False) -> ReplyKeyboardMarkup:
     buttons = [[KeyboardButton(text="Пропустить")]]
     if with_back:
         buttons.append([KeyboardButton(text=TEXT_BACK)])
+
+    if skip:
+        buttons.append([KeyboardButton(text="Пропустить")])
     
     return ReplyKeyboardMarkup(
         keyboard=buttons,
@@ -19,9 +22,12 @@ async def get_skip_keyboard(with_back: bool = True) -> ReplyKeyboardMarkup:
         one_time_keyboard=True
     )
 
-async def get_back_kb() -> ReplyKeyboardMarkup:
+async def get_back_kb(skip: bool = False) -> ReplyKeyboardMarkup:
+    kb = [[KeyboardButton(text=TEXT_BACK)]]
+    if skip:
+        kb.append([KeyboardButton(text="Пропустить")])
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=TEXT_BACK)]],
+        keyboard=kb,
         resize_keyboard=True,
         one_time_keyboard=True
     )
@@ -424,7 +430,7 @@ async def get_delete_confirm_kb() -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-async def get_raven_clusters_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_raven_clusters_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for cluster in CLUSTERS:
         builder.add(InlineKeyboardButton(
@@ -439,9 +445,15 @@ async def get_raven_clusters_kb(with_back: bool = False) -> InlineKeyboardMarkup
             callback_data="raven_cluster_back"
         ))
 
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_cluster_skip"
+        ))
+
     return builder.as_markup()
 
-async def get_raven_servers_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_raven_servers_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for server in SERVERS:
         builder.add(InlineKeyboardButton(
@@ -455,9 +467,16 @@ async def get_raven_servers_kb(with_back: bool = False) -> InlineKeyboardMarkup:
             text=TEXT_BACK,
             callback_data="raven_server_back"
         ))
+
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_cluster_skip"
+        ))
+
     return builder.as_markup()
 
-async def get_raven_classes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_raven_classes_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for cls in CLASSES:
         builder.add(InlineKeyboardButton(
@@ -471,9 +490,16 @@ async def get_raven_classes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
             text=TEXT_BACK,
             callback_data="raven_class_back"
         ))
+
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_cluster_skip"
+        ))
+
     return builder.as_markup()
 
-async def get_raven_budgets_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_raven_budgets_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for budget in BUDGETS:
         builder.add(InlineKeyboardButton(
@@ -487,6 +513,13 @@ async def get_raven_budgets_kb(with_back: bool = False) -> InlineKeyboardMarkup:
             text=TEXT_BACK,
             callback_data="budget_back"
         ))
+
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_cluster_skip"
+        ))
+
     return builder.as_markup()
 
 

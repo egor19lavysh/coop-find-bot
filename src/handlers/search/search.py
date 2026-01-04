@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 from utils.level_up import level_up
 from states.search import *
 from utils.ranks import *
-from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb
-from .profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
+from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb
+from handlers.profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 from statistic import Statistic
 import asyncio
 
@@ -527,12 +527,17 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
     elif game == "Warcraft":
         await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
         await state.set_state(SearchForm.warcraft_mode)
-    else:
+    elif game in ("Raid Shadow Legends", "WoR"):
         if game == "Raid Shadow Legends":
             await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
         else:
             await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
         await state.set_state(SearchForm.num_rank)
+    elif game in ("Raven 2", "Lineage 2M"):
+        if game == "Raven 2":
+            from utils.raven import CLUSTER_TEXT
+            await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True, skip=True))
+            await state.set_state(SearchForm.raven_cluster)
 
 
 @router.message(SearchForm.num_rank)
@@ -690,7 +695,12 @@ async def get_profiles_by_filter(message: Message, state: FSMContext):
     rank = data.get("rank", None)
     goal = data.get("goal", None)
     user_id = data["user_id"]
-    profiles = await repository.get_profiles_by_filters(user_id=user_id, game=game, rank=rank, goal=goal)
+    if game not in ("Raven 2", "Lineage 2M"):
+        profiles = await repository.get_profiles_by_filters(user_id=user_id, game=game, rank=rank, goal=goal)
+    else:
+        if game == "Raven 2":
+            print(rank)
+            profiles = await repository.get_raven_profiles(user_id=user_id, rank=rank, goal=goal) 
 
     if profiles:
         await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")
