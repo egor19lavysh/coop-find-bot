@@ -18,12 +18,12 @@ async def donate_handler(
     state: FSMContext
 ):
     await callback.answer()
+    data = await state.get_data()
 
     choice = callback.data.split("_")[-1]
 
     if choice == "back":
         await callback.message.delete()
-        data = await state.get_data()
         game = data["game"]
 
         await callback.message.answer(
@@ -101,7 +101,7 @@ async def transfer_handler(
         return
 
     await callback.message.edit_text(
-        text=f"Выбран ответ: {transfer if transfer != 'skip' else 'Пропустить'}",
+        text=f"Выбран ответ: {transfer}",
         reply_markup=None
     )
 

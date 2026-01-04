@@ -23,11 +23,12 @@ async def get_lineage_servers_handler(
     data = await state.get_data()
 
     with_back = data.get("lineage_with_back", True)
+    skip = data.get("lineage_skip_option", False)
 
     if part == "1":
-        kb = await get_lineage_servers_pt_1(with_back=with_back)
+        kb = await get_lineage_servers_pt_1(with_back=with_back, skip=skip)
     else:
-        kb = await get_lineage_servers_pt_2(with_back=with_back)
+        kb = await get_lineage_servers_pt_2(with_back=with_back, skip=skip)
 
     await query.message.edit_reply_markup(reply_markup=kb)
 

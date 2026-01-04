@@ -1,3 +1,4 @@
+from unittest import skip
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from utils.constants import BUDGETS, GAME_LIST, FIELDS_LIST, GOALS_LIST, CONVENIENT_TIME
@@ -10,11 +11,12 @@ TEXT_BACK = "Назад"
 
 async def get_skip_keyboard(with_back: bool = True, skip: bool = False) -> ReplyKeyboardMarkup:
     buttons = [[KeyboardButton(text="Пропустить")]]
-    if with_back:
-        buttons.append([KeyboardButton(text=TEXT_BACK)])
-
+    
     if skip:
         buttons.append([KeyboardButton(text="Пропустить")])
+
+    if with_back:
+        buttons.append([KeyboardButton(text=TEXT_BACK)])
     
     return ReplyKeyboardMarkup(
         keyboard=buttons,
@@ -25,7 +27,7 @@ async def get_skip_keyboard(with_back: bool = True, skip: bool = False) -> Reply
 async def get_back_kb(skip: bool = False) -> ReplyKeyboardMarkup:
     kb = [[KeyboardButton(text=TEXT_BACK)]]
     if skip:
-        kb.append([KeyboardButton(text="Пропустить")])
+        kb.insert(0, [KeyboardButton(text="Пропустить")])
     return ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
@@ -279,25 +281,6 @@ async def get_warcraft_modes_kb(with_back: bool = False) -> InlineKeyboardMarkup
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# async def get_warcraft_ranks_kb(is_pve: bool = False) -> InlineKeyboardMarkup:
-#     builder = InlineKeyboardBuilder()
-#     ranks = WARCRAFT_PvE if is_pve else WARCRAFT
-    
-#     # Create a mapping for callback data
-#     for rank in ranks:
-#         # Use index or a short identifier instead of the full name
-#         rank_index = ranks.index(rank)
-#         builder.add(
-#             InlineKeyboardButton(text=rank, callback_data=f"add_warcraft_rank/{rank_index}/{is_pve}")
-#         )
-
-#     builder.adjust(3)
-
-#     builder.add(
-#         InlineKeyboardButton(text="Назад", callback_data="back_from_warcraft_ranks")
-#     )
-
-#     return builder.as_markup()
 
 async def get_warcraft_ranks_kb(is_pve: bool = False, page=0, per_page=18):
     """Клавиатура для отображения списка кланов"""
@@ -439,16 +422,16 @@ async def get_raven_clusters_kb(with_back: bool = False, skip: bool = False) -> 
         ))
     builder.adjust(2)
 
-    if with_back:
-        builder.row(InlineKeyboardButton(
-            text=TEXT_BACK,
-            callback_data="raven_cluster_back"
-        ))
-
     if skip:
         builder.row(InlineKeyboardButton(
             text="Пропустить",
             callback_data="raven_cluster_skip"
+        ))
+        
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="raven_cluster_back"
         ))
 
     return builder.as_markup()
@@ -462,16 +445,16 @@ async def get_raven_servers_kb(with_back: bool = False, skip: bool = False) -> I
         ))
     builder.adjust(2)
 
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_server_skip"
+        ))
+
     if with_back:
         builder.row(InlineKeyboardButton(
             text=TEXT_BACK,
             callback_data="raven_server_back"
-        ))
-
-    if skip:
-        builder.row(InlineKeyboardButton(
-            text="Пропустить",
-            callback_data="raven_cluster_skip"
         ))
 
     return builder.as_markup()
@@ -485,16 +468,16 @@ async def get_raven_classes_kb(with_back: bool = False, skip: bool = False) -> I
         ))
     builder.adjust(2)
 
-    if with_back:
-        builder.row(InlineKeyboardButton(
-            text=TEXT_BACK,
-            callback_data="raven_class_back"
-        ))
-
     if skip:
         builder.row(InlineKeyboardButton(
             text="Пропустить",
             callback_data="raven_cluster_skip"
+        ))
+
+    if with_back:
+        builder.row(InlineKeyboardButton(
+            text=TEXT_BACK,
+            callback_data="raven_class_back"
         ))
 
     return builder.as_markup()
@@ -507,6 +490,12 @@ async def get_raven_budgets_kb(with_back: bool = False, skip: bool = False) -> I
             callback_data=f"budget_{budget}"
         ))
     builder.adjust(2)
+    
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="raven_cluster_skip"
+        ))
 
     if with_back:
         builder.row(InlineKeyboardButton(
@@ -514,16 +503,10 @@ async def get_raven_budgets_kb(with_back: bool = False, skip: bool = False) -> I
             callback_data="budget_back"
         ))
 
-    if skip:
-        builder.row(InlineKeyboardButton(
-            text="Пропустить",
-            callback_data="raven_cluster_skip"
-        ))
-
     return builder.as_markup()
 
 
-async def get_lineage_servers_pt_1(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_lineage_servers_pt_1(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
     builder.row(InlineKeyboardButton(
@@ -565,6 +548,13 @@ async def get_lineage_servers_pt_1(with_back: bool = False) -> InlineKeyboardMar
             callback_data=f"get_lineage_servers_pt_2"
         ))
 
+    builder.adjust(1, 2, 2, 1, 2, 2, 1, 2)
+
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="lineage_server_skip"
+        ))
 
     if with_back:
         builder.row(InlineKeyboardButton(
@@ -572,13 +562,10 @@ async def get_lineage_servers_pt_1(with_back: bool = False) -> InlineKeyboardMar
             callback_data="lineage_server_back"
         ))
 
-        builder.adjust(1, 2, 2, 1, 2, 2, 1, 2, 1)
-    else:
-        builder.adjust(1, 2, 2, 1, 2, 2, 1, 2)
 
     return builder.as_markup()
 
-async def get_lineage_servers_pt_2(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_lineage_servers_pt_2(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
     builder.row(InlineKeyboardButton(
@@ -608,22 +595,26 @@ async def get_lineage_servers_pt_2(with_back: bool = False) -> InlineKeyboardMar
             callback_data=f"blank"
         ))
 
+    builder.adjust(1, 2, 2, 2, 2, 2, 1, 2)
+
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="lineage_server_skip"
+        ))
+
 
     if with_back:
         builder.row(InlineKeyboardButton(
             text="Обратно",
             callback_data="lineage_server_back"
         ))
-        builder.adjust(1, 2, 2, 2, 2, 2, 1, 2, 1)
-    else:
-        builder.adjust(1, 2, 2, 2, 2, 2, 1, 2)
-    
     
 
     return builder.as_markup()
 
 
-async def get_lineage_rases_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_lineage_rases_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for rase in RASES:
         builder.add(InlineKeyboardButton(
@@ -633,6 +624,12 @@ async def get_lineage_rases_kb(with_back: bool = False) -> InlineKeyboardMarkup:
 
     builder.adjust(2)
 
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="lineage_rase_skip"
+        ))
+
     if with_back:
         builder.row(InlineKeyboardButton(
             text=TEXT_BACK,
@@ -641,7 +638,7 @@ async def get_lineage_rases_kb(with_back: bool = False) -> InlineKeyboardMarkup:
 
     return builder.as_markup()
 
-async def get_lineage_classes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
+async def get_lineage_classes_kb(with_back: bool = False, skip: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for cls in LINEAGE_CLASSES:
         builder.add(InlineKeyboardButton(
@@ -650,9 +647,16 @@ async def get_lineage_classes_kb(with_back: bool = False) -> InlineKeyboardMarku
         ))
     builder.adjust(2)
 
+    if skip:
+        builder.row(InlineKeyboardButton(
+            text="Пропустить",
+            callback_data="lineage_class_skip"
+        ))
+
     if with_back:
         builder.row(InlineKeyboardButton(
             text=TEXT_BACK,
             callback_data="lineage_class_back"
         ))
+
     return builder.as_markup()

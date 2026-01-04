@@ -16,6 +16,7 @@ from handlers.profile.games_handlers.edit.donate import router as edit_donate_ro
 from handlers.profile.games_handlers.edit.lineage import router as edit_lineage_router
 from handlers.search.search_donate import router as search_donate_router
 from handlers.search.search_raven import router as search_raven_router
+from handlers.search.search_lineage import router as search_lineage_router
 
 
 
@@ -25,6 +26,10 @@ routers = [start_router, create_clan_router, create_profile_router, raven_router
             edit_lineage_router,
             edit_donate_router,
             donate_router, menu_router,
-            profile_router,search_donate_router, search_raven_router, search_profile, estimate_router,
+            profile_router,
+            search_donate_router, 
+            search_raven_router, 
+            search_lineage_router,
+            search_profile, estimate_router,
             clan_router, edit_profile_router,
             edit_clan_router]

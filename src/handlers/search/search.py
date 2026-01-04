@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from utils.level_up import level_up
 from states.search import *
 from utils.ranks import *
-from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb
+from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb, get_lineage_servers_pt_1
 from handlers.profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 from statistic import Statistic
 import asyncio
@@ -538,6 +538,11 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
             from utils.raven import CLUSTER_TEXT
             await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True, skip=True))
             await state.set_state(SearchForm.raven_cluster)
+        else:
+            from utils.lineage import SERVER_TEXT
+            await state.update_data(lineage_skip_option=True)
+            await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True, skip=True))
+            await state.set_state(SearchForm.lineage_server)
 
 
 @router.message(SearchForm.num_rank)
@@ -698,9 +703,8 @@ async def get_profiles_by_filter(message: Message, state: FSMContext):
     if game not in ("Raven 2", "Lineage 2M"):
         profiles = await repository.get_profiles_by_filters(user_id=user_id, game=game, rank=rank, goal=goal)
     else:
-        if game == "Raven 2":
-            print(rank)
-            profiles = await repository.get_raven_profiles(user_id=user_id, rank=rank, goal=goal) 
+        print(rank)
+        profiles = await repository.get_raven_profiles(user_id=user_id, rank=rank, goal=goal, game=game) 
 
     if profiles:
         await state.update_data(profiles=profiles, current_page=0, game=game, search_type="profiles")

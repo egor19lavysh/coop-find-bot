@@ -97,15 +97,16 @@ class ProfileRepository:
             return result.scalars().all()
         
     @staticmethod
-    async def get_profiles_by_raven_rank(profiles: list[Profile], rank: str) -> list[Profile]: # Говнокод...
+    async def get_profiles_by_rank(game_name: str, profiles: list[Profile], rank: str) -> list[Profile]: # Говнокод...
         filtered_profiles = []
         need = rank.split("@")
+
         for profile in profiles:
             flag = False
-            print(profile.games)
             for game in profile.games:
-                if game.name == "Raven 2":
+                if game.name == game_name:
                     parts = game.rank.split("@")
+
                     for i in range(len(need)):
                         if need[i] == "skip":
                             continue
@@ -119,10 +120,10 @@ class ProfileRepository:
                 
         return filtered_profiles
 
-    async def get_raven_profiles(self, user_id: int, rank: str = None, goal: str = None) -> list[Profile]:
+    async def get_raven_profiles(self, user_id: int, rank: str = None, goal: str = None, game: str = "Raven 2") -> list[Profile]:
         stmt = select(Profile).options(selectinload(Profile.games)).where(
             Profile.is_active,
-            Game.name == "Raven 2",
+            Game.name == game,
             Profile.user_id != user_id
         )
         if goal:
@@ -133,8 +134,9 @@ class ProfileRepository:
         async with self.session_factory() as session:
             result = await session.execute(stmt)
             all_profiles = result.scalars().all()
+            print(len(all_profiles))
 
-            return await self.get_profiles_by_raven_rank(all_profiles, rank) if rank else all_profiles
+            return await self.get_profiles_by_rank(game, all_profiles, rank) if rank else all_profiles
 
     async def update_photo(self, user_id: int, photo: str) -> None:
         async with self.session_factory() as session:
