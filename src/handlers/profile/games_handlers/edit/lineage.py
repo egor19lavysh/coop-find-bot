@@ -43,6 +43,7 @@ async def lineage_rasa_handler(
     rasa = callback.data.split("_")[-1]
 
     if rasa == "back":
+        await callback.message.delete()
         await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1())
         await state.set_state(EditProfileForm.lineage_server)
         return
@@ -68,6 +69,7 @@ async def lineage_class_handler(
     await callback.answer()
 
     if l_class == "back":
+        await callback.message.delete()
         await callback.message.answer(text=RASA_TEXT, reply_markup=await get_lineage_rases_kb(with_back=True))
         await state.set_state(EditProfileForm.lineage_rasa)
         return
@@ -91,6 +93,7 @@ async def lineage_level_entered(
     level_text = message.text.strip()
 
     if level_text == TEXT_BACK:
+        await message.delete()
         await message.answer(
             text=CLASS_TEXT,
             reply_markup=await get_lineage_classes_kb(with_back=True)
@@ -126,6 +129,7 @@ async def lineage_stats_entered(
     stats_text = message.text.strip()
 
     if stats_text == TEXT_BACK:
+        await message.delete()
         await message.answer(
             text=LEVEL_TEXT,
             reply_markup=await get_back_kb()

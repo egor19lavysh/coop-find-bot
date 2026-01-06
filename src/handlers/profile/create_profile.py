@@ -512,12 +512,15 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
             elif game == "Warcraft":
                 await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
                 await state.set_state(ProfileForm.add_warcraft_mode)
-            else:
+            elif game == ("WoR", "Raid Shadow Legends"):
                 if game == "Raid Shadow Legends":
                     await message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
                 else:
                     await message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
                 await state.set_state(ProfileForm.num_rank)
+            elif game in ("Raven 2", "Lineage 2M"):
+                await message.answer(text=TRANSFER_TEXT, reply_markup=await get_confirmation_kb(with_back=True, skip=True))
+                await state.set_state(ProfileForm.transfer)
         else:
             await message.answer("Пришлите фотографии или выберите ответ с клавиатуры!")
 

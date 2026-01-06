@@ -80,6 +80,7 @@ async def budget_handler(
     budget = callback.data.split("_")[-1]
 
     if budget == "back":
+        await callback.message.delete()
         await callback.message.answer(
             text=DONATE_TEXT,
             reply_markup=await get_confirmation_kb(with_back=True))
@@ -114,6 +115,7 @@ async def transfer_handler(
     transfer = callback.data.split("_")[-1]
 
     if transfer == "back":
+        await callback.message.delete()
         await callback.message.answer(
             text=DONATE_TEXT,
             reply_markup=await get_confirmation_kb(with_back=True))
