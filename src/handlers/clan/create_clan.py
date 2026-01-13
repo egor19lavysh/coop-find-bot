@@ -48,7 +48,7 @@ async def start_clan(bot: Bot, state: FSMContext):
 
     await state.set_state(ClanForm.name)
     await bot.send_message(chat_id=user_id, text=TEXT_INTRO)
-    await bot.send_message(chat_id=user_id, text=TEXT_NAME)
+    await bot.send_message(chat_id=user_id, text=TEXT_NAME, reply_markup= await get_back_kb())
     
 
 @router.message(ClanForm.name)
@@ -58,8 +58,13 @@ async def save_name(message: Message, state: FSMContext):
         return
     
     if message.text:
+        if message.text.strip().lower() == "назад":
+            await message.answer("Создание анкеты отменено.", reply_markup=await get_back_to_menu())
+            await state.clear()
+            return
+        
         await state.update_data(name=message.text)
-        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=False))
+        await message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
         await state.set_state(ClanForm.game)
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
@@ -75,14 +80,32 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
     else:
         callback = event
 
+    if callback.data == "back_from_games":
+        await callback.message.delete()
+        await callback.message.answer(text=TEXT_NAME, reply_markup=await get_back_kb())
+        await state.set_state(ClanForm.name)
+        return
+
     game = callback.data.split("_")[-1]
     await callback.answer()
 
     if game:
+
         if game in GAME_LIST:
             await state.update_data(game=game)
-            await state.set_state(ClanForm.description)
-            await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
+            await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
+
+            if game == "Raven 2":
+                from utils.raven import SERVER_TEXT
+                await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_raven_servers_kb(with_back=True))
+                await state.set_state(ClanForm.raven_server)
+            elif game == "Lineage 2M":
+                from utils.lineage import SERVER_TEXT
+                await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True))
+                await state.set_state(ClanForm.lineage_server)
+            else:
+                await state.set_state(ClanForm.description)
+                await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
         else:
             await state.set_state(ClanForm.game)
             await callback.message.answer(text=TEXT_WRONG_ANSWER)
@@ -126,14 +149,14 @@ async def save_demands(message: Message, state: FSMContext):
 
 @router.message(ClanForm.photo)
 async def save_photo(message: Message, state: FSMContext):
-    if message.text in CMDS:
-        await restrict_access(message, TEXT_PHOTO, get_skip_keyboard, with_back=False)
-        return
-    
     if message.photo:
         await state.update_data(photo=message.photo[-1].file_id)
-    elif message.text == "Пропустить":
-        await state.update_data(photo=None)
+    elif message.text:
+        if message.text in CMDS:
+            await restrict_access(message, TEXT_PHOTO, get_skip_keyboard, with_back=False)
+            return
+        elif message.text.lower() == "пропустить":
+            await state.update_data(photo=None)
     else:
         await state.set_state(ClanForm.photo)
         await message.answer(text=TEXT_PHOTO_ERROR)
@@ -158,7 +181,8 @@ async def check_profile(message: Message, state: FSMContext):
                 game=game,
                 description=description,
                 demands=demands,
-            )
+            ),
+            reply_markup=ReplyKeyboardRemove()
         )
 
     else:
@@ -168,7 +192,8 @@ async def check_profile(message: Message, state: FSMContext):
                 game=game,
                 description=description,
                 demands=demands,
-            ) + PHOTO_SAMPLE
+            ) + PHOTO_SAMPLE,
+            reply_markup=ReplyKeyboardRemove()
         )
 
     await message.answer(text=IS_CLAN_OK, reply_markup=await get_commit_clan_kb())
@@ -201,7 +226,7 @@ async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext
         
     else:
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
-        await state.set_state(ClanForm.check.check_profile)
+        await state.set_state(ClanForm.check)
 
 
 

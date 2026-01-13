@@ -24,10 +24,11 @@ logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 
 
-@dp.message(F.photo)
-async def handle_media(message: Message):
-    if message.chat.id == settings.PRIVATE_PHOTO_GROUP_ID:
-        await message.reply(message.photo[-1].file_id)
+# @dp.message(F.photo)
+# async def handle_media(message: Message):
+#     if message.chat.id == settings.PRIVATE_PHOTO_GROUP_ID:
+#         await message.reply(message.photo[-1].file_id)
+        
 
 # Run the bot
 async def main() -> None:

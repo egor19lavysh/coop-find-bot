@@ -5,6 +5,8 @@ class EditClanForm(StatesGroup):
     choose_field = State()
     name = State()
     game = State()
+    raven_server = State()
+    lineage_server = State()
     description = State()
     demands = State()
     photo = State()

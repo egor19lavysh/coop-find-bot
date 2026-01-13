@@ -17,11 +17,15 @@ from handlers.profile.games_handlers.edit.lineage import router as edit_lineage_
 from handlers.search.search_donate import router as search_donate_router
 from handlers.search.search_raven import router as search_raven_router
 from handlers.search.search_lineage import router as search_lineage_router
+from handlers.clan.games.raven import router as raven_clan_router
+from handlers.clan.games.lineage import router as lineage_clan_router
 
 
 
-routers = [start_router, create_clan_router, create_profile_router, raven_router,
-           lineage_router,
+routers = [start_router, create_clan_router, raven_clan_router,
+            create_profile_router, raven_router,
+            lineage_router,
+            lineage_clan_router,
             edit_raven_router,
             edit_lineage_router,
             edit_donate_router,
