@@ -16,6 +16,8 @@ from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcra
 from handlers.profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 from statistic import Statistic
 import asyncio
+from utils.profile_templates import get_raven2_rank_template
+from utils.profile_templates import get_warcraft_rank_template
 
 router = Router()
 
@@ -398,14 +400,25 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     user_profile = await repository.get_profile(callback.from_user.id)
     username = user_profile.nickname if user_profile else callback.from_user.full_name
 
-    join_message = f"🏰 Заявка на вступление в клан '{clan.name}'\n\n"
+    join_message = f"🏰 Заявка на вступление в клан {clan.name}\n\n"
     join_message += f"👤 Игрок: {username}\n"
     join_message += f"🎮 Игра: {clan.game}\n"
 
     if user_profile:
         games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
-        join_message += f"📊 Ранг: {games.get(clan.game, None) or 'Не указан'}\n"
-        join_message += f"🎯 Цель: {user_profile.goal}\n"
+        rank = games.get(clan.game, None)
+        game = clan.game
+        if rank:
+            if game in ("Raven 2", "Lineage 2M"):
+                rank = await get_raven2_rank_template(game, rank)
+            elif game == "Warcraft":
+                rank = await get_warcraft_rank_template(rank)
+
+        if game in ("Raven 2", "Lineage 2M"):
+            join_message += rank
+        else:
+            join_message += f"📊 Ранг: {rank or 'Не указан'}\n"
+        join_message += f"🎯 Цель: {', '.join(user_profile.goals) if user_profile.goals else 'Не указаны'}\n"
 
     if callback.from_user.username:
         join_message += f"📞 Телеграм: @{callback.from_user.username}"

@@ -36,7 +36,7 @@ async def raven_server_chosen(
         return
     
     data = await state.get_data()
-    await state.update_data(name=data["name"] + "-" + server)
+    await state.update_data(name=data["name"] + "|" + server)
     await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
     await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
     await state.set_state(ClanForm.description)

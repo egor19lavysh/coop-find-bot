@@ -152,7 +152,7 @@ async def raven_server_chosen(
 
     await repository.update_game(clan_id=clan_id, game=game)
     name = (await repository.get_clan_by_id(clan_id=clan_id)).name
-    new_name = name + "-" + server
+    new_name = name + "|" + server
     await repository.update_name(clan_id=clan_id, name=new_name)
     await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
     await state.clear()
@@ -181,7 +181,7 @@ async def lineage_server_chosen(
 
     await repository.update_game(clan_id=clan_id, game=game)
     name = (await repository.get_clan_by_id(clan_id=clan_id)).name
-    new_name = name + "-" + server
+    new_name = name + "|" + server
     await repository.update_name(clan_id=clan_id, name=new_name)
     await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
     await state.clear()

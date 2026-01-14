@@ -105,3 +105,36 @@ async def get_profile_template(profile: Profile, game: str) -> str:
 
 async def get_profile_template_no_rank(profile: Profile) -> str:
     return await get_main_template(profile)
+
+async def get_raven2_rank_template(game: str, rank: str) -> str:
+    parts = rank.split("@")
+
+    if game == "Raven 2":
+        server = f"{parts[0]} - {parts[1]}"
+    else:
+        server = parts[0]
+
+    if game == "Lineage 2M":
+        class_ = f"{parts[1]}-{parts[2]}"
+    else:
+        class_ = parts[2]
+
+    level = parts[3]
+    stats = parts[4] if parts[4] != "-" else "Не указаны"
+
+    if parts[-3] == "Да":
+        donate = f"{parts[-3]}, {parts[-2] if parts[-2] != '-' else 'Не указан'}"
+    else:
+        donate = "Нет"
+        
+    transfer = parts[-1] if parts[-1] != "-" else "Не указан"
+
+    return f"<b>Сервер</b>: {server}\n<b>Класс</b>: {class_}\n<b>Уровень</b>: {level}\n<b>Статы</b>: {stats}\n<b>Донат</b>: {donate}\n<b>Готов к трансферу</b>: {transfer}\n"
+
+async def get_warcraft_rank_template(rank: str) -> str:
+    parts = rank.split(";")[:-1]
+    subranks = []
+    for subrank in parts:
+        mode, info = subrank.split("/")
+        subranks.append(f"- {mode}: {info}")
+    return "\n" + "\n".join(subranks)
