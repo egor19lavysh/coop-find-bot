@@ -1,20 +1,22 @@
 from models.profile import Profile
 from utils.constants import FULL_PROFILE_SAMPLE, PROFILE_ADD_INFO, RAVEN_PROFILE_ADD_INFO
+from html import escape
+
 
 
 async def get_main_template(profile: Profile, user_rank: str = "") -> str:
     return FULL_PROFILE_SAMPLE.format(
-            nickname=profile.nickname,
-            telegram_tag= "@" + profile.telegram_tag if profile.telegram_tag else "Нет",
-            gender=profile.gender if profile.gender else "Нет",
-            level=profile.experience // 100 + 1,
-            polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
-            games=profile.games_str,
+            nickname=escape(profile.nickname),
+            telegram_tag= escape("@" + profile.telegram_tag if profile.telegram_tag else "Нет"),
+            gender=escape(profile.gender if profile.gender else "Нет"),
+            level=escape(str(profile.experience // 100 + 1)),
+            polite=escape(str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"),
+            skill=escape(str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"),
+            team_game=escape(str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"), 
+            games=escape(profile.games_str),
             rank=user_rank,
             add_info=PROFILE_ADD_INFO.format(time=", ".join(profile.convenient_time) if profile.convenient_time else "Не указано", 
-                                             about=profile.about, goal=", ".join(profile.goals) if profile.goals else "Не указаны")
+                                             about=escape(profile.about), goal=", ".join(profile.goals) if profile.goals else "Не указаны")
         )
 
 async def get_warcraft_profile_template(profile: Profile) -> str:
@@ -37,7 +39,7 @@ async def get_other_game_profile_template(profile: Profile, game: str) -> str:
     games = {game.name: game.rank for game in profile.games}
 
     if games.get(game, False):
-        user_rank = f"\n<b>Ранг:</b> {games[game]}"
+        user_rank = f"\n<b>Ранг:</b> {escape(games[game])}"
     else:
         user_rank = f"\n<b>Ранг:</b> Не указан"
 
@@ -45,14 +47,14 @@ async def get_other_game_profile_template(profile: Profile, game: str) -> str:
 
 async def get_raven_main_template(profile: Profile, user_rank: str = "", add_info: str = "") -> str:
     return FULL_PROFILE_SAMPLE.format(
-            nickname=profile.nickname,
-            telegram_tag= "@" + profile.telegram_tag if profile.telegram_tag else "Нет",
-            gender=profile.gender if profile.gender else "Нет",
-            level=profile.experience // 100 + 1,
-            polite=str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            skill=str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок",
-            team_game=str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок", 
-            games=profile.games_str,
+            nickname=escape(profile.nickname),
+            telegram_tag= escape("@" + profile.telegram_tag if profile.telegram_tag else "Нет"),
+            gender=escape(profile.gender if profile.gender else "Нет"),
+            level=escape(str(profile.experience // 100 + 1)),
+            polite=escape(str(round(profile.polite, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"),
+            skill=escape(str(round(profile.skill, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"),
+            team_game=escape(str(round(profile.team_game, 1)) + "⭐" if profile.teammate_ids else "Нет оценок"), 
+            games=escape(profile.games_str),
             rank=user_rank,
             add_info=add_info
         )
@@ -82,13 +84,13 @@ async def get_raven2_profile_template(profile: Profile, game: str) -> str:
 
 
         add_info = RAVEN_PROFILE_ADD_INFO.format(
-                                             server=server,
-                                             class_=class_,
-                                             level=level,
-                                             time=", ".join(profile.convenient_time) if profile.convenient_time else "Не указано", 
-                                             donate=donate,
-                                             about=profile.about, 
-                                             goal=", ".join(profile.goals) if profile.goals else "Не указаны")
+                                             server=escape(server),
+                                             class_=escape(class_),
+                                             level=escape(level),
+                                             time=escape(", ".join(profile.convenient_time) if profile.convenient_time else "Не указано"), 
+                                             donate=escape(donate),
+                                             about=escape(profile.about), 
+                                             goal=escape(", ".join(profile.goals) if profile.goals else "Не указаны"))
         
         return await get_raven_main_template(profile, "", add_info)
     
@@ -129,7 +131,7 @@ async def get_raven2_rank_template(game: str, rank: str) -> str:
         
     transfer = parts[-1] if parts[-1] != "-" else "Не указан"
 
-    return f"<b>Сервер</b>: {server}\n<b>Класс</b>: {class_}\n<b>Уровень</b>: {level}\n<b>Статы</b>: {stats}\n<b>Донат</b>: {donate}\n<b>Готов к трансферу</b>: {transfer}\n"
+    return f"<b>Сервер</b>: {escape(server)}\n<b>Класс</b>: {escape(class_)}\n<b>Уровень</b>: {escape(level)}\n<b>Статы</b>: {escape(stats)}\n<b>Донат</b>: {escape(donate)}\n<b>Готов к трансферу</b>: {escape(transfer)}\n"
 
 async def get_warcraft_rank_template(rank: str) -> str:
     parts = rank.split(";")[:-1]

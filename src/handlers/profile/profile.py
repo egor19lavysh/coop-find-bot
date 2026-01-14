@@ -87,7 +87,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: St
         else:
             keyboard = await get_back_to_menu()
             
-        prefix = TEXT_YOUR_CHOICE.format(name=profile.nickname) if type_user == "other" else ""
+        prefix = TEXT_YOUR_CHOICE.format(name=escape(profile.nickname)) if type_user == "other" else ""
 
         profile_text = prefix + await get_profile_template(profile, game) if type_user == "other" else prefix + await get_profile_template_no_rank(profile)
 
@@ -95,7 +95,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: St
             try:
                 await callback.message.answer_photo(
                     photo=profile.photo,
-                    caption=escape(profile_text),
+                    caption=profile_text,
                     reply_markup=keyboard)
                 await callback.answer()
                 return
