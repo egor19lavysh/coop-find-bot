@@ -18,6 +18,8 @@ from statistic import Statistic
 import asyncio
 from utils.profile_templates import get_raven2_rank_template
 from utils.profile_templates import get_warcraft_rank_template
+from html import escape
+
 
 router = Router()
 
@@ -248,7 +250,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
         try:
             await message.bot.send_message(
                 chat_id=user_id,
-                text=TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix,
+                text=escape(TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix),
                 reply_markup=await get_to_dialog_with_user_kb(
                     username=message.from_user.username) if message.from_user.username else None
             )
@@ -297,7 +299,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
         await callback.bot.send_message(
             chat_id=teammate_id,
-            text=TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix,
+            text=escape(TEXT_INVITE.format(name=callback.from_user.full_name, game=game) + postfix),
             reply_markup=keyboard
         )
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
@@ -351,22 +353,22 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Клан не найден")
         return
 
-    clan_info = f"<b>Название клана</b>: {clan.name}\n\n"
-    clan_info += f"<b>Игра</b>: {clan.game}\n\n"
-    clan_info += f"<b>Описание</b>: {clan.description}\n\n"
-    clan_info += f"<b>Требования</b>: {clan.demands}\n\n"
+    clan_info = f"<b>Название клана</b>: {escape(clan.name)}\n\n"
+    clan_info += f"<b>Игра</b>: {escape(clan.game)}\n\n"
+    clan_info += f"<b>Описание</b>: {escape(clan.description)}\n\n"
+    clan_info += f"<b>Требования</b>: {escape(clan.demands)}\n\n"
 
     from aiogram.exceptions import TelegramBadRequest
 
     try:
         user = await callback.bot.get_chat(clan.user_id)
         if user.username:
-            clan_info += f"<b>Тег лидера клана</b>: @{user.username}\n\n"
+            clan_info += f"<b>Тег лидера клана</b>: @{escape(user.username)}\n\n"
 
     except TelegramBadRequest:
         user = await repository.get_profile(user_id=clan.user_id)
         if user.nickname:
-            clan_info += f"<b>Тег лидера клана</b>: @{user.nickname}\n\n"
+            clan_info += f"<b>Тег лидера клана</b>: @{escape(user.nickname)}\n\n"
     except Exception as e:
         print(e)
 
@@ -400,9 +402,9 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     user_profile = await repository.get_profile(callback.from_user.id)
     username = user_profile.nickname if user_profile else callback.from_user.full_name
 
-    join_message = f"🏰 Заявка на вступление в клан {clan.name}\n\n"
-    join_message += f"👤 Игрок: {username}\n"
-    join_message += f"🎮 Игра: {clan.game}\n"
+    join_message = f"🏰 Заявка на вступление в клан {escape(clan.name)}\n\n"
+    join_message += f"👤 Игрок: {escape(username}\)n"
+    join_message += f"🎮 Игра: {escape(clan.game)}\n"
 
     if user_profile:
         games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
@@ -421,7 +423,7 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
         join_message += f"🎯 Цель: {', '.join(user_profile.goals) if user_profile.goals else 'Не указаны'}\n"
 
     if callback.from_user.username:
-        join_message += f"📞 Телеграм: @{callback.from_user.username}"
+        join_message += f"📞 Телеграм: @{escape(callback.from_user.username)}"
 
     join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
     try:

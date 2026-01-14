@@ -10,6 +10,7 @@ from .create_profile import start_profile
 from statistic import Statistic
 from utils.profile_templates import get_profile_template, get_profile_template_no_rank
 import asyncio
+from html import escape
 
 
 router = Router()
@@ -94,7 +95,7 @@ async def read_profile(callback: CallbackQuery, state: FSMContext, statistic: St
             try:
                 await callback.message.answer_photo(
                     photo=profile.photo,
-                    caption=profile_text,
+                    caption=escape(profile_text),
                     reply_markup=keyboard)
                 await callback.answer()
                 return
@@ -134,9 +135,9 @@ async def show_gallery(callback: CallbackQuery):
             if games[game].gallery:
                 media = [InputMediaPhoto(media=file_id) for file_id in games[game].gallery]
                 await callback.bot.send_media_group(chat_id=callback.message.chat.id, media=media)
-                await callback.message.answer(TEXT_GALLERY.format(name=nickname), reply_markup=kb)
+                await callback.message.answer(escape(TEXT_GALLERY.format(name=nickname)), reply_markup=kb)
                 return
-    await callback.message.answer(f"Упс, {nickname} не прикрепил фото игрового профиля", reply_markup=kb)
+    await callback.message.answer(f"Упс, {escape(nickname)} не прикрепил фото игрового профиля", reply_markup=kb)
     
 @router.callback_query(F.data == "delete_profile")
 async def delete_profile(callback: CallbackQuery):
