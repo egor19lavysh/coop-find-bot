@@ -90,7 +90,7 @@ async def get_back_to_clans() -> InlineKeyboardMarkup:
         inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="get_all_user_clans")]]
     )
 
-async def get_edit_clan_fields_kb(clan_id: int):
+async def get_edit_clan_fields_kb(clan_id: int, server: bool = False):
     keyboard = [
         [
             InlineKeyboardButton(text="Название", callback_data="new_clan_name"),
@@ -111,6 +111,9 @@ async def get_edit_clan_fields_kb(clan_id: int):
             InlineKeyboardButton(text="Отмена", callback_data=f"detail_clan_{clan_id}"),
         ]
     ]
+
+    if server:
+        keyboard.insert(2, [InlineKeyboardButton(text="Сервер", callback_data="new_clan_server")])
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 

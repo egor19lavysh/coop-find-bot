@@ -43,8 +43,18 @@ async def start_edit_clan(callback: CallbackQuery, state: FSMContext):
     await state.update_data(
         clan_id=clan_id
     )
+
+    clan = await repository.get_clan_by_id(clan_id)
+
+    if clan.game in ("Raven 2", "Lineage 2M"):
+        markup = await get_edit_clan_fields_kb(clan_id, server=True)
+        await state.update_data(
+        game=clan.game
+    )
+    else:
+        markup = await get_edit_clan_fields_kb(clan_id)
     
-    await callback.message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_clan_fields_kb(clan_id))
+    await callback.message.answer(TEXT_CHOOSE_FIELD, reply_markup=markup)
     await state.set_state(EditClanForm.choose_field)
     await callback.answer()
 
@@ -61,6 +71,8 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
     
     await callback.answer()
     await callback.message.delete()
+
+    data = await state.get_data()
     
     if field == "name":
         await callback.message.answer(TEXT_EDIT_NAME)
@@ -81,6 +93,42 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
     elif field == "photo":
         await callback.message.answer(TEXT_EDIT_PHOTO, reply_markup=await get_skip_keyboard(with_back=False))
         await state.set_state(EditClanForm.photo)
+
+    elif field == "server":
+        from utils.raven import SERVER_TEXT
+
+        servers = {
+            "Raven 2": await get_raven_servers_kb(),
+            "Lineage 2M": await get_lineage_servers_pt_1()
+        }
+
+        if data["game"] in servers:
+            await callback.message.answer(SERVER_TEXT, reply_markup=servers[data["game"]])
+            await state.set_state(EditClanForm.server)
+        else:
+            await callback.message.answer("Произошла какая-то ошибка...") 
+            await state.clear()
+
+@router.callback_query(EditClanForm.server)
+async def save_server(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    data = await state.get_data()
+    clan_id = data["clan_id"]
+    game = data.get("game")
+
+    server = callback.data.split("_")[-1]
+    await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
+
+    name = (await repository.get_clan_by_id(clan_id)).name
+    new_name = name.split("|")[0] + "|" + server
+    await repository.update_name(clan_id, new_name)
+
+    await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
+    await state.clear()
+
+
+
 
 @router.message(EditClanForm.name)
 async def save_name(message: Message, state: FSMContext):
