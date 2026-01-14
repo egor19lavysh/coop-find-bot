@@ -239,10 +239,10 @@ async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext
 async def save_clan(message: Message, state: FSMContext, user_id: int):
     data = await state.get_data()
 
-    name = escape(data["name"])
-    game = escape(data["game"])
-    description = escape(data["description"])
-    demands = escape(data["demands"])
+    name = data["name"]
+    game = data["game"]
+    description = data["description"]
+    demands = data["demands"]
     photo = data["photo"]
 
     await repository.create_clan(
