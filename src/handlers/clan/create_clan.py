@@ -173,11 +173,11 @@ async def save_photo(message: Message, state: FSMContext):
 async def check_profile(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    name = data["name"]
-    game = data["game"]
-    description = data["description"]
-    demands = data["demands"]
-    photo = data["photo"]
+    name = escape(data["name"])
+    game = escape(data["game"])
+    description = escape(data["description"])
+    demands = escape(data["demands"])
+    photo = escape(data["photo"])
 
     if photo:
         await message.answer_photo(
