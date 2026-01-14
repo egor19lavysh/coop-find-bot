@@ -403,7 +403,7 @@ async def join_clan(callback: CallbackQuery, state: FSMContext):
     username = user_profile.nickname if user_profile else callback.from_user.full_name
 
     join_message = f"🏰 Заявка на вступление в клан {escape(clan.name)}\n\n"
-    join_message += f"👤 Игрок: {escape(username}\)n"
+    join_message += f"👤 Игрок: {escape(username)}\n"
     join_message += f"🎮 Игра: {escape(clan.game)}\n"
 
     if user_profile:
