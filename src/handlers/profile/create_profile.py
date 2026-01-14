@@ -12,6 +12,7 @@ from utils.creation_process import restrict_access, CMDS
 from typing import Union
 from statistic import Statistic
 import asyncio
+from html import escape
 
 
 router = Router()
@@ -800,14 +801,14 @@ async def save_photo(message: Message, state: FSMContext):
 async def check_profile(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    nickname = data["nickname"]
-    telegram_tag = data["telegram_tag"] if data["telegram_tag"] else "Нет"
-    gender = data["gender"] if data["gender"] else "Нет"
-    games = data["games"]
-    about = data["about"]
-    goals = data["goals"]
+    nickname = escape(data["nickname"])
+    telegram_tag = escape(data["telegram_tag"]) if data["telegram_tag"] else "Нет"
+    gender = escape(data["gender"]) if data["gender"] else "Нет"
+    games = [escape(game) for game in data["games"]]
+    about = escape(data["about"])
+    goals = [escape(goal) for goal in data["goals"]]
     photo = data["photo"]
-    time = data["time"]
+    time = [escape(t) for t in data["time"]]
 
 
     games_str = ", ".join(games)

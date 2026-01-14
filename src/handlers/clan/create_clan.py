@@ -10,6 +10,7 @@ from handlers.menu import cmd_menu
 from states.create_clan import *
 from utils.creation_process import CMDS, restrict_access
 from typing import Union
+from html import escape
 
 
 router = Router()
@@ -238,11 +239,11 @@ async def commit_profile(event: Union[CallbackQuery, Message], state: FSMContext
 async def save_clan(message: Message, state: FSMContext, user_id: int):
     data = await state.get_data()
 
-    name = data["name"]
-    game = data["game"]
-    description = data["description"]
-    demands = data["demands"]
-    photo = data["photo"]
+    name = escape(data["name"])
+    game = escape(data["game"])
+    description = escape(data["description"])
+    demands = escape(data["demands"])
+    photo = escape(data["photo"])
 
     await repository.create_clan(
         user_id=user_id,
