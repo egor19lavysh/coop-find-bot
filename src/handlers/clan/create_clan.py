@@ -177,7 +177,7 @@ async def check_profile(message: Message, state: FSMContext):
     game = escape(data["game"])
     description = escape(data["description"])
     demands = escape(data["demands"])
-    photo = escape(data["photo"])
+    photo = data["photo"]
 
     if photo:
         await message.answer_photo(
@@ -243,7 +243,7 @@ async def save_clan(message: Message, state: FSMContext, user_id: int):
     game = escape(data["game"])
     description = escape(data["description"])
     demands = escape(data["demands"])
-    photo = escape(data["photo"])
+    photo = data["photo"]
 
     await repository.create_clan(
         user_id=user_id,
