@@ -265,8 +265,9 @@ async def send_message_to_user(message: Message, state: FSMContext):
                     await repository.update_send_first_message(user_id=profile.user_id)
 
 
-        except:
+        except Exception as e:
             await message.answer(text=TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb())
+            print(e)
 
         # Очищаем состояние, но сохраняем игру для возможности вернуться
         await state.clear()
@@ -305,7 +306,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
         await callback.message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
         if callback.from_user.id not in profile.teammate_ids:
-            dt = datetime.now() + timedelta(seconds=15)
+            dt = datetime.now() + timedelta(hours=24)
             await schedule_estimate(
                 apscheduler=apscheduler,
                 time=dt,
@@ -317,6 +318,7 @@ async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: A
             )
     except Exception as e:
         await callback.message.answer(text=TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb())
+        print(e)
 
     await callback.answer()
 

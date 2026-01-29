@@ -50,11 +50,11 @@ async def main() -> None:
     #sub_middleware = SubscriptionMiddleware()
     action_middleware = ActivityTrackingMiddleware()
     album_middleware = AlbumMiddleware()
-    #ad_middleware = AdvertismentMiddleware()
+    ad_middleware = AdvertismentMiddleware()
 
     #dp.message.middleware(sub_middleware)
     #dp.callback_query.middleware(sub_middleware)
-    #dp.callback_query.middleware(ad_middleware)
+    dp.callback_query.middleware(ad_middleware)
     dp.message.middleware(scheduler_middleware)
     dp.callback_query.middleware(scheduler_middleware)
     dp.message.middleware(album_middleware)
