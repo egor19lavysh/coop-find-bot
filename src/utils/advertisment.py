@@ -32,44 +32,44 @@ POP_UPS = {
 
     5: {"text": """🎁 У нас идёт розыгрыш!
 Среди призов — Porsche Panamera и новый игровой ПК.
-Узнай, как участвовать 👉 https://gg.store/promotion
+Узнай, как участвовать 👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Наш канал: https://t.me/ggstore_hub
 """,
 "pic": "AgACAgIAAxkBAAJM4mlOddo-JOGJwe8S8ByGTBzA57ybAAJhDmsbd-d4SrVdt_29HYnbAQADAgADeAADNgQ",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 
     6: {"text": """GG.Store проводит розыгрыш призов
 Главные призы — Porsche Panamera и мощный игровой ПК.
-Прими участие 👉 https://gg.store/promotion
+Прими участие 👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Присоеденяйся: https://t.me/ggstore_hub
 """,
 "pic": "AgACAgIAAxkBAAJM5GlOdjzTsxholvr4MPUJ3zZFlP_IAAJtDmsbd-d4SrCBtHWVawABbwEAAwIAA3kAAzYE",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 
     7: {"text": """Хочешь шанс выиграть Porsche Panamera?
 На GG.Store сейчас проходит розыгрыш с крупными призами.
-Все детали 👉 https://gg.store/promotion
+Все детали 👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Наш канал: https://t.me/ggstore_hub""",
 "pic": "AgACAgIAAxkBAAJM5mlOdlBgIUA6KJDMUPTLjXQrhSbYAAJuDmsbd-d4SuK4PaYdxOoGAQADAgADeAADNgQ",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 
     8: {"text": """Запустили большой розыгрыш на GG.Store
-Разыгрываем Porsche Panamera, игровой ПК и много других призов. Подробнее👉 https://gg.store/promotion
+Разыгрываем Porsche Panamera, игровой ПК и много других призов. Подробнее👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Присоеденяйся: https://t.me/ggstore_hub""",
 "pic": "AgACAgIAAxkBAAJM6GlOdmH9iwt3zlTPQ7hXFov7aTGkAAJ5Dmsbd-d4SvbiDvLFGVgeAQADAgADeQADNgQ",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 
     9: {"text": """GG.Store разыгрывает крутые призы
 Можно забрать Porsche Panamera, игровой ПК и многое другое.
-Участвовать легко — купи или продай 👉 https://gg.store/promotion
+Участвовать легко — купи или продай 👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Наш канал: https://t.me/ggstore_hub
 """,
 "pic": "AgACAgIAAxkBAAJM5GlOdjzTsxholvr4MPUJ3zZFlP_IAAJtDmsbd-d4SrCBtHWVawABbwEAAwIAA3kAAzYE",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 
     10: {"text": """Любишь играть? Тогда зарабатывай на этом.
-На GG.Store можно продавать игровые ценности, получать деньги и участвовать в розыгрыше с шансом выиграть Porsche Panamera. Начать легко 👉 https://gg.store/promotion
+На GG.Store можно продавать игровые ценности, получать деньги и участвовать в розыгрыше с шансом выиграть Porsche Panamera. Начать легко 👉 https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot
 Присоеденяйся: https://t.me/ggstore_hub""",
 "pic": "AgACAgIAAxkBAAJMvmlOdJmv3aZtynXVPngOIjkc0pWtAAJKDmsbd-d4Sipxg6Pys407AQADAgADeQADNgQ",
-"link": "https://gg.store/promotion"},
+"link": "https://click.gg.partners/FXm9F6zx?landing=1&sub_id1=TeamSeek&sub_id2=bot"},
 }

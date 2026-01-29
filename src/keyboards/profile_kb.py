@@ -57,10 +57,12 @@ async def get_game_kb(with_back: bool = True, n: int = 2) -> InlineKeyboardMarku
                                  callback_data=f"save_profile_game_{game}")
         )
     
-    if with_back:
-        builder.add(InlineKeyboardButton(text="Назад", callback_data="back_from_games"))
     
     builder.adjust(n)
+    
+    if with_back:
+        builder.row(InlineKeyboardButton(text="Назад", callback_data="back_from_games"))
+    
     keyboard = builder.as_markup()
     return keyboard
 
@@ -268,6 +270,30 @@ async def get_ranks_kb(game: str, with_back: bool = False) -> InlineKeyboardMark
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
         
+
+async def get_marvel_ranks(with_back: bool = False) -> InlineKeyboardMarkup:
+    btns = []
+    titles = ["Бронза (Bronze)", "Серебро (Silver)", "Золото (Gold)", "Платина (Platinum)", "Алмаз (Diamond)", "Грандмастер (Grandmaster)", "Целестиал (Celestial)"]
+
+    for title in titles:
+        btns.append([InlineKeyboardButton(text=title, callback_data="blank")])
+        
+        first = title.split()[0]
+
+        btns.append([InlineKeyboardButton(text=first + " I", callback_data="rank_" + first + " I"),
+                     InlineKeyboardButton(text=first + " II", callback_data="rank_" + first + " II")])
+        
+        btns.append([InlineKeyboardButton(text=first + " III", callback_data="rank_" + first + " III")])
+
+    btns.append([InlineKeyboardButton(text="Вечность", callback_data="rank_Вечность")])
+
+    btns.append([InlineKeyboardButton(text="Один над всеми", callback_data="rank_Один над всеми")])
+
+    if with_back:
+        btns.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"rank_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=btns)
+
 
 async def get_warcraft_modes_kb(with_back: bool = False) -> InlineKeyboardMarkup:
     keyboard = []

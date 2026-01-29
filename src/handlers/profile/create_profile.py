@@ -209,6 +209,9 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
         if game in GAMES_RANKS:
             await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
             await state.set_state(ProfileForm.rank)
+        elif game == "Marvel Rivals":
+            await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
+            await state.set_state(ProfileForm.rank)
         elif game == "Warcraft":
             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
@@ -403,7 +406,10 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
 
     if isinstance(event, Message):
         if event.text in CMDS:
-            await restrict_access(event, TEXT_RANK.format(game=game), get_ranks_kb, game, with_back=True)
+            if game == "Marvel Rivals":
+                await restrict_access(event, "Укажите свой ранг Marvel Rivals из списка ниже:", get_marvel_ranks, with_back=True)
+            else:
+                await restrict_access(event, TEXT_RANK.format(game=game), get_ranks_kb, game, with_back=True)
             return
     else:
         callback = event
@@ -422,6 +428,10 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
                 game_rank=""
             )
 
+        elif game == "Marvel Rivals":
+            await state.update_data(
+                game_rank=text
+            )
         elif text in GAMES_RANKS[game]:
             await state.update_data(
                 game_rank=text
@@ -429,7 +439,7 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
 
         else:
             await callback.message.answer("Выбрано некорректное значение!")
-            await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
+            #await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
             return
         
         await callback.message.edit_text(f"Выбран ранг: {text if text != 'skip' else 'Пропустить'}", reply_markup=None)
@@ -509,6 +519,9 @@ async def save_gallery(message: Message, state: FSMContext, album: list[Message]
         elif message.text == "Назад":
             if game in GAMES_RANKS:
                 await message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game, with_back=True))
+                await state.set_state(ProfileForm.rank)
+            elif game == "Marvel Rivals":
+                await message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
                 await state.set_state(ProfileForm.rank)
             elif game == "Warcraft":
                 await message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))

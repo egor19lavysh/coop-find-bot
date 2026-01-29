@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from utils.level_up import level_up
 from states.search import *
 from utils.ranks import *
-from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb, get_lineage_servers_pt_1
+from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb, get_lineage_servers_pt_1, get_marvel_ranks
 from handlers.profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 from statistic import Statistic
 import asyncio
@@ -541,6 +541,9 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
     if game in GAMES_RANKS:
         await callback.message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
         await state.set_state(SearchForm.rank)
+    elif game == "Marvel Rivals":
+        await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
+        await state.set_state(SearchForm.rank)
     elif game == "Warcraft":
         await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
         await state.set_state(SearchForm.warcraft_mode)
@@ -597,6 +600,9 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
 
         elif text == "skip":
             await state.update_data(rank=None)
+
+        elif game == "Marvel Rivals":
+            await state.update_data(rank=text)
 
         elif text in GAMES_RANKS[game]:
             await state.update_data(rank=text)
@@ -688,9 +694,32 @@ async def save_goal(callback: CallbackQuery, state: FSMContext):
     text = callback.data.split("_")[-1]
 
     if text:
-        if text == "back":
-            await callback.message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
-            await state.set_state(SearchForm.rank)
+        if text == "back": # Добавить игры!!!
+            if game == "Marvel Rivals":
+                await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
+                await state.set_state(SearchForm.rank)
+            elif game == "Warcraft":
+                await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
+                await state.set_state(SearchForm.warcraft_mode)
+            elif game in ("Raid Shadow Legends", "WoR"):
+                if game == "Raid Shadow Legends":
+                    await callback.message.answer(text=TEXT_RSL, reply_markup=ReplyKeyboardRemove())
+                else:
+                    await callback.message.answer(text=TEXT_NUM_RANK, reply_markup=ReplyKeyboardRemove())
+                await state.set_state(SearchForm.num_rank)
+            elif game in ("Raven 2", "Lineage 2M"):
+                if game == "Raven 2":
+                    from utils.raven import CLUSTER_TEXT
+                    await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True, skip=True))
+                    await state.set_state(SearchForm.raven_cluster)
+                else:
+                    from utils.lineage import SERVER_TEXT
+                    await state.update_data(lineage_skip_option=True)
+                    await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True, skip=True))
+                    await state.set_state(SearchForm.lineage_server)
+            else:
+                await callback.message.answer(f"Выберите ранг в {game}", reply_markup=await get_ranks_kb(game, True))
+                await state.set_state(SearchForm.rank)
             return
 
         elif text == "skip":

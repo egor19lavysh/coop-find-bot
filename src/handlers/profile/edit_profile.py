@@ -500,6 +500,9 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
     if game in GAMES_RANKS:
         await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game))
         await state.set_state(EditProfileForm.rank)
+    elif game == "Marvel Rivals":
+            await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
+            await state.set_state(EditProfileForm.rank)
     elif game == "Warcraft":
         await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
         await state.set_state(EditProfileForm.add_warcraft_mode)

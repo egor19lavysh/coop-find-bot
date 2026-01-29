@@ -17,7 +17,8 @@ GAME_LIST = {
     "Raid Shadow Legends": "💎 Raid Shadow Legends 💎",
     "WoR": "🌠 WoR 🌠",
     "Raven 2": "🔥 Raven 2 🔥",
-    "Lineage 2M": "🏰 Lineage 2M 🏰"
+    "Lineage 2M": "🏰 Lineage 2M 🏰",
+    "Marvel Rivals": "🏆Marvel Rivals🏆"
 }
 
 PROFILE_SAMPLE = """
