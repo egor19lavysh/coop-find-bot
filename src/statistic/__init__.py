@@ -37,3 +37,6 @@ class Statistic:
 
     async def set_invite_game(self, user_id: int):
         await self._update_row(user_id, 7)
+
+    async def set_go_website(self, user_id: int):
+        await self._update_row(user_id, 8)

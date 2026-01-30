@@ -19,7 +19,7 @@ router = Router()
 
 
 ### ТЕКСТЫ
-TEXT_NICK = "Введи свой никнейм (он будет отображаться в анкете) длиной до 8 символов."
+TEXT_NICK = "Укажи игровой ник, под которым тебя будут видеть другие игроки."
 TEXT_TAG = "Укажи свой тег в Telegram (по желанию)."
 TEXT_GENDER = "Выбери свой пол."
 TEXT_GAME = "Выбери игры, в которую ищешь тиммейтов:"
@@ -96,7 +96,7 @@ async def save_nickname(message: Message, state: FSMContext):
         await state.clear()
         return
     
-    if message.text and len(message.text) <= 8:
+    if message.text:
         await state.update_data(nickname=message.text)
         await message.answer(text=TEXT_TAG, reply_markup=await get_tag_kb())
         await state.set_state(ProfileForm.telegram_tag)

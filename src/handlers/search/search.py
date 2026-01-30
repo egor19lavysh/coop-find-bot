@@ -19,6 +19,7 @@ import asyncio
 from utils.profile_templates import get_raven2_rank_template
 from utils.profile_templates import get_warcraft_rank_template
 from html import escape
+from utils.decorators import require_profile
 
 
 router = Router()
@@ -84,6 +85,14 @@ TEXT_EMOJI = """
 Уровень — ⭐️
 
 Рядом с ником стоит только показатель уровня ⭐️, значит пользователя еще не оценили и ты можешь стать первым!
+"""
+
+MESSAGE_TEXT = """
+Пользователь {nick} заинтересовался твоей анкетой по
+{game} и отправил тебе
+сообщение:
+
+{text}
 """
 
 
@@ -215,6 +224,7 @@ async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext)
 
 
 @router.callback_query(F.data.startswith("send_message_to_user_"))
+@require_profile
 async def send_message(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
     asyncio.create_task(statistic.set_invite_game(callback.from_user.id))
     user_id = int(callback.data.split("_")[-1])
@@ -232,6 +242,7 @@ async def send_message(callback: CallbackQuery, state: FSMContext, statistic: St
 
 
 @router.message(SendMessageForm.message)
+@require_profile
 async def send_message_to_user(message: Message, state: FSMContext):
     if message.text:
         data = await state.get_data()
@@ -243,16 +254,14 @@ async def send_message_to_user(message: Message, state: FSMContext):
             await state.clear()
             return
 
-        postfix = ""
-        if message.from_user.username:
-            postfix = TEXT_ADDITIONAL_INFO.format(tag="@" + message.from_user.username)
-
+        profile = await repository.get_profile(user_id=message.from_user.id)
+        postfix = '\n\nТы можешь ответить ему в личных сообщениях, нажав кнопку “Ответить”👇' if message.from_user.username else ""
         try:
             await message.bot.send_message(
                 chat_id=user_id,
-                text=escape(TEXT_MESSAGE.format(name=message.from_user.full_name, message=message.text) + postfix),
+                text=escape(MESSAGE_TEXT.format(nick=profile.nickname, game=game, text=message.text) + postfix),
                 reply_markup=await get_to_dialog_with_user_kb(
-                    username=message.from_user.username) if message.from_user.username else None
+                    username=message.from_user.username, user_id=message.from_user.id) if message.from_user.username else None
             )
             await message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
@@ -278,6 +287,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
 
 
 @router.callback_query(F.data.startswith("invite_user_"))
+@require_profile
 async def invite_user(callback: CallbackQuery, state: FSMContext, apscheduler: AsyncIOScheduler, statistic: Statistic):
     asyncio.create_task(statistic.set_invite_game(callback.from_user.id))
     callback_parts = callback.data.split("_")
@@ -387,6 +397,7 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(F.data.startswith("join_clan_"))
+@require_profile
 async def join_clan(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 

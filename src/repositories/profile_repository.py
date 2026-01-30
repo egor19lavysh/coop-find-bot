@@ -53,7 +53,7 @@ class ProfileRepository:
             result = await session.execute(
                 select(Profile)
             )
-            return result.scalars().all()
+            return await self.range_profiles(result.scalars().all())
         
     async def get_profile(self, user_id: int) -> Profile | None:
         async with self.session_factory() as session:
@@ -74,7 +74,7 @@ class ProfileRepository:
                 )
                 .distinct()
             )
-        return result.scalars().all()
+        return await self.range_profiles(result.scalars().all())
     
     async def get_profiles_by_filters(self,
                                       user_id: int, 
@@ -94,10 +94,9 @@ class ProfileRepository:
     
         async with self.session_factory() as session:
             result = await session.execute(stmt)
-            return result.scalars().all()
+            return await self.range_profiles(result.scalars().all())
         
-    @staticmethod
-    async def get_profiles_by_rank(game_name: str, profiles: list[Profile], rank: str) -> list[Profile]: # Говнокод...
+    async def get_profiles_by_rank(self, game_name: str, profiles: list[Profile], rank: str) -> list[Profile]: # Говнокод...
         filtered_profiles = []
         need = rank.split("@")
 
@@ -118,7 +117,7 @@ class ProfileRepository:
                         filtered_profiles.append(profile)
                         break
                 
-        return filtered_profiles
+        return await self.range_profiles(filtered_profiles)
 
     async def get_raven_profiles(self, user_id: int, rank: str = None, goal: str = None, game: str = "Raven 2") -> list[Profile]:
         stmt = select(Profile).options(selectinload(Profile.games)).where(
@@ -134,9 +133,52 @@ class ProfileRepository:
         async with self.session_factory() as session:
             result = await session.execute(stmt)
             all_profiles = result.scalars().all()
-            print(len(all_profiles))
 
             return await self.get_profiles_by_rank(game, all_profiles, rank) if rank else all_profiles
+
+    async def range_profiles(self, profiles: list[Profile]) -> list[Profile]:
+        """Ранжирует список `Profile` по иерархии:
+
+        1. Профили с представленным отзывом (поле `polite`, `skill` или `team_game` не None).
+        2. По опыту `experience` (чем выше — тем выше в списке).
+        3. Полные анкеты с фото (приоритет наличия фото, затем степень заполненности).
+        4. Анкеты с только обязательными полями — внизу.
+
+        Возвращает новый список, отсортированный по убыванию приоритета.
+        """
+
+        def has_review(p: Profile) -> bool:
+            return any(getattr(p, attr, None) is not None for attr in ("polite", "skill", "team_game"))
+
+        def completeness_score(p: Profile) -> int:
+            score = 0
+            if getattr(p, "telegram_tag", None):
+                score += 1
+            if getattr(p, "gender", None):
+                score += 1
+            if getattr(p, "about", None):
+                score += 1
+            if getattr(p, "goals", None) and len(p.goals) > 0:
+                score += 1
+            if getattr(p, "convenient_time", None) and len(p.convenient_time) > 0:
+                score += 1
+            if getattr(p, "games", None) and len(p.games) > 0:
+                score += 1
+            # фото даём чуть больший вес
+            if getattr(p, "photo", None):
+                score += 2
+            return score
+
+        def sort_key(p: Profile):
+            return (
+                1 if has_review(p) else 0,
+                getattr(p, "experience", 0) or 0,
+                1 if getattr(p, "photo", None) else 0,
+                completeness_score(p),
+            )
+
+        # Сортируем по убыванию всех значений ключа
+        return sorted(profiles, key=sort_key, reverse=True)
 
     async def update_photo(self, user_id: int, photo: str) -> None:
         async with self.session_factory() as session:
