@@ -18,7 +18,11 @@ GAME_LIST = {
     "WoR": "🌠 WoR 🌠",
     "Raven 2": "🔥 Raven 2 🔥",
     "Lineage 2M": "🏰 Lineage 2M 🏰",
-    "Marvel Rivals": "🏆Marvel Rivals🏆"
+    "Marvel Rivals": "🏆Marvel Rivals🏆",
+    "Minecraft": "⛏️Minecraft⛏️",
+    "Rust": "🪓Rust🪓",
+    "Standoff 2": "⚡Standoff 2⚡",
+    "GTA VI": "💵GTA VI💵"
 }
 
 PROFILE_SAMPLE = """

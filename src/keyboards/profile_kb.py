@@ -288,7 +288,32 @@ async def get_marvel_ranks(with_back: bool = False) -> InlineKeyboardMarkup:
     btns.append([InlineKeyboardButton(text="Вечность", callback_data="rank_Вечность")])
 
     btns.append([InlineKeyboardButton(text="Один над всеми", callback_data="rank_Один над всеми")])
+    
+    btns.append([InlineKeyboardButton(text="Пропустить", callback_data=f"rank_skip")])
+    
+    if with_back:
+        btns.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"rank_back")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=btns)
 
+async def get_standoff_ranks(with_back: bool = False) -> InlineKeyboardMarkup:
+    btns = []
+    titles = ["Silver", "Gold", "Master"]
+
+    for title in titles:
+        btns.append([InlineKeyboardButton(text=title, callback_data="blank")])
+
+        btns.append([InlineKeyboardButton(text=title + " I", callback_data="rank_" + title + " I"),
+                     InlineKeyboardButton(text=title + " II", callback_data="rank_" + title + " II")])
+        
+        btns.append([InlineKeyboardButton(text=title + " III", callback_data="rank_" + title + " III"),
+                     InlineKeyboardButton(text=title + " IV", callback_data="rank_" + title + " IV")])
+
+    btns.append([InlineKeyboardButton(text="Champion", callback_data="blank")])
+    btns.append([InlineKeyboardButton(text="Champion", callback_data="rank_Champion")])
+
+    btns.append([InlineKeyboardButton(text="Пропустить", callback_data=f"rank_skip")])
+    
     if with_back:
         btns.append([InlineKeyboardButton(text=TEXT_BACK, callback_data=f"rank_back")])
     

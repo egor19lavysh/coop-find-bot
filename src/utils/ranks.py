@@ -121,6 +121,33 @@ FORTNITE = [
     "Unreal"
 ]
 
+MINECRAFT = [
+    "Менее года",
+    "До 1 года",
+    "До 3 лет",
+    "До 5 лет",
+    "Больше 5 лет",
+]
+
+RUST = [
+    "До 50 часов",
+    "50+",
+    "100+",
+    "300+",
+    "500+",
+    "1000+",
+    "3000+",
+]
+
+GTA = [
+    "1–50",
+    "51–100",
+    "101–200",
+    "201–400",
+    "401–700",
+    "701–1000+",
+]
+
 GAMES_RANKS = {
     "PUBG": PUBG,
     "Dota 2": DOTA2,
@@ -131,4 +158,7 @@ GAMES_RANKS = {
     "League of Legends": LEAGUE_OF_LEGENDS,
     "Mobile Legends": MOBILE_LEGENDS,
     "Fortnite": FORTNITE,
+    "Minecraft": MINECRAFT,
+    "Rust": RUST,
+    "GTA VI": GTA
 }

@@ -212,6 +212,9 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
         elif game == "Marvel Rivals":
             await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
             await state.set_state(ProfileForm.rank)
+        elif game == "Standoff 2":
+            await callback.message.answer(text="Выберите ранг Standoff 2 из списка ниже:", reply_markup=await get_standoff_ranks(with_back=True))
+            await state.set_state(ProfileForm.rank)
         elif game == "Warcraft":
             await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb(True))
             await state.set_state(ProfileForm.add_warcraft_mode)
@@ -406,7 +409,7 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
 
     if isinstance(event, Message):
         if event.text in CMDS:
-            if game == "Marvel Rivals":
+            if game == "Marvel Rivals": # Добавить игры!
                 await restrict_access(event, "Укажите свой ранг Marvel Rivals из списка ниже:", get_marvel_ranks, with_back=True)
             else:
                 await restrict_access(event, TEXT_RANK.format(game=game), get_ranks_kb, game, with_back=True)
@@ -429,6 +432,10 @@ async def save_rank(event: Union[CallbackQuery, Message], state: FSMContext):
             )
 
         elif game == "Marvel Rivals":
+            await state.update_data(
+                game_rank=text
+            )
+        elif game == "Standoff 2":
             await state.update_data(
                 game_rank=text
             )
