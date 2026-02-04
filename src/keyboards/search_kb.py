@@ -258,7 +258,7 @@ async def get_back_to_games_kb(search_type: str) -> InlineKeyboardMarkup:
 
 async def get_invite_profile_kb(user_id) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Его профиль", callback_data=f"read_profile_invite_{user_id}")]]
+        inline_keyboard=[[InlineKeyboardButton(text="Посмотреть профиль", callback_data=f"read_profile_invite_{user_id}")]]
     )
 
 
@@ -268,7 +268,7 @@ async def get_to_dialog_with_user_kb(username: str, user_id: int) -> InlineKeybo
             text="Ответить",
             url=f"https://t.me/{username}"
         )],
-        [InlineKeyboardButton(text="Посмотреть профиль", callback_data=f"read_profile_other_{user_id}")]
+        [InlineKeyboardButton(text="Посмотреть профиль", callback_data=f"read_profile_invite_{user_id}")]
     ])
     return keyboard
 

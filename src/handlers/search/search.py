@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from utils.level_up import level_up
 from states.search import *
 from utils.ranks import *
-from keyboards.profile_kb import get_ranks_kb, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb, get_lineage_servers_pt_1, get_marvel_ranks
+from keyboards.profile_kb import get_ranks_kb, get_standoff_ranks, get_warcraft_modes_kb, get_warcraft_ranks_kb, get_raven_clusters_kb, get_lineage_servers_pt_1, get_marvel_ranks
 from handlers.profile.create_profile import TEXT_WARCRAFT_MODE, handle_ranks_pagination
 from statistic import Statistic
 import asyncio
@@ -555,6 +555,9 @@ async def filter_game(callback: CallbackQuery, state: FSMContext):
     elif game == "Marvel Rivals":
         await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks(with_back=True))
         await state.set_state(SearchForm.rank)
+    elif game == "Standoff 2":
+        await callback.message.answer(text="Укажите свой ранг Standoff 2 из списка ниже:", reply_markup=await get_standoff_ranks(with_back=True))
+        await state.set_state(SearchForm.rank)
     elif game == "Warcraft":
         await callback.message.answer("Выберите режим:", reply_markup=await get_warcraft_modes_kb(True))
         await state.set_state(SearchForm.warcraft_mode)
@@ -613,6 +616,9 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
             await state.update_data(rank=None)
 
         elif game == "Marvel Rivals":
+            await state.update_data(rank=text)
+
+        elif game == "Standoff 2":
             await state.update_data(rank=text)
 
         elif text in GAMES_RANKS[game]:

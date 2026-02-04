@@ -501,8 +501,11 @@ async def edit_game_rank(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_RANK.format(game=game), reply_markup=await get_ranks_kb(game))
         await state.set_state(EditProfileForm.rank)
     elif game == "Marvel Rivals":
-            await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks())
-            await state.set_state(EditProfileForm.rank)
+        await callback.message.answer(text="Укажите свой ранг Marvel Rivals из списка ниже:", reply_markup=await get_marvel_ranks())
+        await state.set_state(EditProfileForm.rank)
+    elif game == "Standoff 2":
+        await callback.message.answer(text="Выберите ранг Standoff 2 из списка ниже:", reply_markup=await get_standoff_ranks())
+        await state.set_state(EditProfileForm.rank)
     elif game == "Warcraft":
         await callback.message.answer(text=TEXT_WARCRAFT_MODE, reply_markup=await get_warcraft_modes_kb())
         await state.set_state(EditProfileForm.add_warcraft_mode)
@@ -699,12 +702,6 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
             rank = None
         else:
             rank = text
-            if game in ["Raid Shadow Legends", "WoR"]:
-                try:
-                    float(rank)
-                except Exception:
-                    await callback.message.answer("Введите численное значение!")
-                    return
 
         if "process" in data:
             if data["process"] in ("editing_rank", "creating_profile"):
@@ -732,6 +729,7 @@ async def save_rank(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR, reply_markup=await get_skip_keyboard(with_back=True))
         await state.set_state(EditProfileForm.rank)
 
+
 @router.callback_query(F.data.startswith("edit_gallery_"))
 async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -748,6 +746,7 @@ async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
         )
     await callback.message.answer(text=TEXT_GALLERY, reply_markup=await get_skip_keyboard(False))
     await state.set_state(EditProfileForm.gallery)
+
 
 @router.message(EditProfileForm.gallery)
 async def save_gallery(message: Message, state: FSMContext, album: list[Message] = None):
@@ -854,8 +853,6 @@ async def edit_game_gallery(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(f"Игра {game} была удалена.", reply_markup=ReplyKeyboardRemove())
     await callback.message.answer(TEXT_BACK_TO_MENU, reply_markup=await get_back_to_menu())
     await state.clear()
-
-
 
 
 @router.callback_query(F.data == "back_to_profile_check")

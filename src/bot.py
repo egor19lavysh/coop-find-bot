@@ -17,6 +17,7 @@ from google_sheet import GoogleSheetService
 from statistic import Statistic
 from repositories.user_repository import user_repository
 from aiogram.filters.command import Command
+import asyncio
 
 
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +30,14 @@ dp = Dispatcher()
 #     if message.chat.id == settings.PRIVATE_PHOTO_GROUP_ID:
 #         await message.reply(message.photo[-1].file_id)
         
+@dp.callback_query(F.data.startswith("go_to_"))
+async def handle_go_to_callback(callback: types.CallbackQuery, statistic: Statistic):
+    asyncio.create_task(statistic.set_go_website(callback.from_user.id))
+    await callback.answer()
+    url = callback.data.removeprefix("go_to_")
+
+    await callback.message.edit_reply_markup()
+    await callback.message.answer(f"Переходи 👉 {url}")
 
 # Run the bot
 async def main() -> None:
@@ -54,7 +63,7 @@ async def main() -> None:
 
     #dp.message.middleware(sub_middleware)
     #dp.callback_query.middleware(sub_middleware)
-    #dp.callback_query.middleware(ad_middleware)
+    dp.callback_query.middleware(ad_middleware)
     dp.message.middleware(scheduler_middleware)
     dp.callback_query.middleware(scheduler_middleware)
     dp.message.middleware(album_middleware)

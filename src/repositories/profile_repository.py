@@ -51,7 +51,7 @@ class ProfileRepository:
     async def get_profiles(self) -> list[Profile]:
         async with self.session_factory() as session:
             result = await session.execute(
-                select(Profile)
+                select(Profile).options(selectinload(Profile.games))
             )
             return await self.range_profiles(result.scalars().all())
         
@@ -72,6 +72,7 @@ class ProfileRepository:
                     Profile.is_active == True,
                     Profile.user_id != user_id
                 )
+                .options(selectinload(Profile.games))
                 .distinct()
             )
         return await self.range_profiles(result.scalars().all())
@@ -90,7 +91,7 @@ class ProfileRepository:
         if goal:
             stmt = stmt.where(Profile.goals.contains([goal]))
 
-        stmt = stmt.distinct()
+        stmt = stmt.options(selectinload(Profile.games)).distinct()
     
         async with self.session_factory() as session:
             result = await session.execute(stmt)

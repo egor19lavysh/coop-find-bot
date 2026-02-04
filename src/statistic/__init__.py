@@ -13,7 +13,7 @@ class Statistic:
         index = self._google_sheet.get_row_index_multi({0: user_id, 2: utm_label})
         if index:
             return index
-        row = [user_id, username, utm_label, created_at.strftime('%d.%m.%Y %H:%M:%S'), '-', '-', '-', '-']
+        row = [user_id, username, utm_label, created_at.strftime('%d.%m.%Y %H:%M:%S'), '-', '-', '-', '-', '-']
         return self._google_sheet.insert_row(row)
 
     async def _update_row(self, user_id: int, col_index: int):
@@ -23,7 +23,7 @@ class Statistic:
         if not index:
             username = user_data.get('username')
             created_at = user_data.get('created_at')
-            index = await self.add_row(user_id, username, created_at)
+            index = await self.add_row(user_id, username, utm_label, created_at)
         self._google_sheet.update_row(index, {col_index: "'+"})
 
     async def set_filled_profile(self, user_id: int):
