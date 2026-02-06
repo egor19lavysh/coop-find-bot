@@ -226,11 +226,12 @@ async def get_back_to_main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="menu")]])
 
 async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="menu")],
+    return InlineKeyboardMarkup(inline_keyboard=[
                                     [InlineKeyboardButton(
                                                     text="Ответить",
                                                     url=f"https://t.me/{username}"
-                                                )]              
+                                                )],
+                                    [InlineKeyboardButton(text="Назад", callback_data="menu")]              
                                                   ])
 
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:

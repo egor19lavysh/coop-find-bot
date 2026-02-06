@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from src.utils.creation_process import render_clan_info
+from utils.creation_process import render_clan_info
 from utils.constants import *
 from utils.schedule_estimate import schedule_estimate
 from keyboards.search_kb import *
