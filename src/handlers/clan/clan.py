@@ -7,6 +7,7 @@ from keyboards.clan_kb import *
 from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from .create_clan import start_clan
+from utils.creation_process import render_clan_info
 
 
 router = Router()
@@ -60,6 +61,7 @@ async def detail_clan(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("read_clan"))
 async def read_clan(callback: CallbackQuery):
+    await callback.answer() 
     await callback.message.delete()
 
     callback_parts = callback.data.split("_")
@@ -71,9 +73,16 @@ async def read_clan(callback: CallbackQuery):
         keyboard = await get_interaction_kb(user_id=clan.user_id, game=clan.game) if type_user == "other" else await get_back_to_menu(clan_id)
         prefix = TEXT_YOUR_CHOICE if type_user == "other" else ""
 
+        if clan.add_info:
+            add_info = await render_clan_info(clan.game, clan.add_info)
+            add_info_text = f"\n<b>Дополнительная информация</b>:\n{add_info}"
+        else:
+            add_info_text = ""
+
         profile_text = prefix + CLAN_SAMPLE.format(
                     name=clan.name,
                     game=clan.game,
+                    add_info=add_info_text,
                     description=clan.description,
                     demands=clan.demands
         )
@@ -96,7 +105,7 @@ async def read_clan(callback: CallbackQuery):
     else:
         await callback.message.answer(text=TEXT_NO_CLAN)
     
-    await callback.answer() 
+    
 
 
 @router.callback_query(F.data.startswith("delete_clan"))

@@ -8,7 +8,7 @@ from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from handlers.menu import cmd_menu
 from states.create_clan import *
-from utils.creation_process import CMDS, restrict_access
+from utils.creation_process import CMDS, restrict_access, render_clan_info
 from typing import Union
 from html import escape
 
@@ -102,9 +102,9 @@ async def save_game(event: Union[CallbackQuery, Message], state: FSMContext):
             await callback.message.edit_text(text=f"Выбрана игра: {game}", reply_markup=None)
 
             if game == "Raven 2":
-                from utils.raven import SERVER_TEXT
-                await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_raven_servers_kb(with_back=True))
-                await state.set_state(ClanForm.raven_server)
+                from utils.raven import CLUSTER_TEXT
+                await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
+                await state.set_state(ClanForm.raven_cluster)
             elif game == "Lineage 2M":
                 from utils.lineage import SERVER_TEXT
                 await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True))
@@ -178,6 +178,8 @@ async def check_profile(message: Message, state: FSMContext):
     description = escape(data["description"])
     demands = escape(data["demands"])
     photo = data["photo"]
+    add_info = await render_clan_info(game, (data.get("add_info", None)))
+    add_info_text = f"\n<b>Дополнительная информация</b>:\n{add_info}" if add_info else ""
 
     if photo:
         await message.answer_photo(
@@ -185,6 +187,7 @@ async def check_profile(message: Message, state: FSMContext):
             caption=CLAN_SAMPLE.format(
                 name=name,
                 game=game,
+                add_info=add_info_text,
                 description=description,
                 demands=demands,
             ),
@@ -196,6 +199,7 @@ async def check_profile(message: Message, state: FSMContext):
             text=CLAN_SAMPLE.format(
                 name=name,
                 game=game,
+                add_info=add_info_text,
                 description=description,
                 demands=demands,
             ) + PHOTO_SAMPLE,
@@ -244,11 +248,13 @@ async def save_clan(message: Message, state: FSMContext, user_id: int):
     description = data["description"]
     demands = data["demands"]
     photo = data["photo"]
+    add_info = data.get("add_info", None)
 
     await repository.create_clan(
         user_id=user_id,
         name=name,
         game=game,
+        add_info=add_info,
         description=description,
         demands=demands,
         photo=photo,

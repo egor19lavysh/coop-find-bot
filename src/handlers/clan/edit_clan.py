@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from keyboards.clan_kb import *
-from keyboards.profile_kb import get_game_kb, get_raven_servers_kb, get_lineage_servers_pt_1
+from keyboards.profile_kb import get_game_kb, get_raven_servers_kb, get_lineage_servers_pt_1, get_raven_clusters_kb
 from utils.constants import *
 from repositories.clan_repository import clan_repository as repository
 from utils.decorators import require_profile
@@ -47,7 +47,7 @@ async def start_edit_clan(callback: CallbackQuery, state: FSMContext):
     clan = await repository.get_clan_by_id(clan_id)
 
     if clan.game in ("Raven 2", "Lineage 2M"):
-        markup = await get_edit_clan_fields_kb(clan_id, server=True)
+        markup = await get_edit_clan_fields_kb(clan_id, add_info=True)
         await state.update_data(
         game=clan.game
     )
@@ -94,40 +94,27 @@ async def process_field_selection(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(TEXT_EDIT_PHOTO, reply_markup=await get_skip_keyboard(with_back=False))
         await state.set_state(EditClanForm.photo)
 
-    elif field == "server":
-        from utils.raven import SERVER_TEXT
+    elif field == "info":
+        data = await state.get_data()
+        clan_id = data["clan_id"]
+        clan = await repository.get_clan_by_id(clan_id)
+        game = clan.game
 
-        servers = {
-            "Raven 2": await get_raven_servers_kb(),
-            "Lineage 2M": await get_lineage_servers_pt_1()
-        }
+        if game == "Raven 2":
+            from utils.raven import CLUSTER_TEXT
+            await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
+            await state.set_state(EditClanForm.raven_cluster)
+            return
 
-        if data["game"] in servers:
-            await callback.message.answer(SERVER_TEXT, reply_markup=servers[data["game"]])
-            await state.set_state(EditClanForm.server)
-        else:
-            await callback.message.answer("Произошла какая-то ошибка...") 
-            await state.clear()
+        if game == "Lineage 2M":
+            from utils.lineage import SERVER_TEXT
+            await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_lineage_servers_pt_1(with_back=True))
+            await state.set_state(EditClanForm.lineage_server)
+            return
 
-@router.callback_query(EditClanForm.server)
-async def save_server(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-
-    data = await state.get_data()
-    clan_id = data["clan_id"]
-    game = data.get("game")
-
-    server = callback.data.split("_")[-1]
-    await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
-
-    name = (await repository.get_clan_by_id(clan_id)).name
-    new_name = name.split("|")[0] + "|" + server
-    await repository.update_name(clan_id, new_name)
-
-    await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
-    await state.clear()
-
-
+        await callback.message.answer(text="У этой игры нет дополнительной информации.", reply_markup=await get_back_to_menu(clan_id=clan_id))
+        await state.clear()
+        return
 
 
 @router.message(EditClanForm.name)
@@ -177,6 +164,32 @@ async def save_game(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(ClanForm.game)
 
+
+@router.callback_query(EditClanForm.raven_cluster)
+async def edit_raven_cluster_chosen(
+    callback: CallbackQuery,
+    state: FSMContext
+):
+    await callback.answer()
+
+    data = await state.get_data()
+    clan_id = data.get("clan_id")
+
+    cluster = callback.data.split("_")[-1]
+
+    if cluster == "back":
+        await callback.message.delete()
+        await callback.message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_clan_fields_kb(clan_id, add_info=True))
+        await state.set_state(EditClanForm.choose_field)
+        return
+
+    await state.update_data(raven_cluster=cluster)
+    await callback.message.edit_text(text=f"Выбран кластер: {cluster}", reply_markup=None)
+
+    from utils.raven import SERVER_TEXT
+    await callback.message.answer(text=SERVER_TEXT, reply_markup=await get_raven_servers_kb(with_back=True))
+    await state.set_state(EditClanForm.raven_server)
+
 @router.callback_query(EditClanForm.raven_server)
 async def raven_server_chosen(
     callback: CallbackQuery,
@@ -186,22 +199,19 @@ async def raven_server_chosen(
 
     data = await state.get_data()
     clan_id = data["clan_id"]
-    game = data["game"]
 
     server = callback.data.split("_")[-1]
+    cluster = data.get("raven_cluster")
 
     if server == "back":
-        await callback.message.delete()
-        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb())
-        await state.set_state(EditClanForm.game)
+        from utils.raven import CLUSTER_TEXT
+        await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
+        await state.set_state(EditClanForm.raven_cluster)
         return
     
     await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
 
-    await repository.update_game(clan_id=clan_id, game=game)
-    name = (await repository.get_clan_by_id(clan_id=clan_id)).name
-    new_name = name + "|" + server
-    await repository.update_name(clan_id=clan_id, name=new_name)
+    await repository.update_add_info(clan_id=clan_id, add_info=f"{cluster}@{server}")
     await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
     await state.clear()
     return
@@ -221,16 +231,13 @@ async def lineage_server_chosen(
 
     if server == "back":
         await callback.message.delete()
-        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb())
-        await state.set_state(EditClanForm.game)
+        await callback.message.answer(TEXT_CHOOSE_FIELD, reply_markup=await get_edit_clan_fields_kb(clan_id, add_info=True))
+        await state.set_state(EditClanForm.choose_field)
         return
     
     await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
 
-    await repository.update_game(clan_id=clan_id, game=game)
-    name = (await repository.get_clan_by_id(clan_id=clan_id)).name
-    new_name = name + "|" + server
-    await repository.update_name(clan_id=clan_id, name=new_name)
+    await repository.update_add_info(clan_id=clan_id, add_info=server)
     await callback.message.answer(text=TEXT_SUCCESS_EDIT, reply_markup=await get_back_to_menu(clan_id=clan_id))
     await state.clear()
     return

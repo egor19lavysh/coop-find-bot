@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
+from src.utils.creation_process import render_clan_info
 from utils.constants import *
 from utils.schedule_estimate import schedule_estimate
 from keyboards.search_kb import *
@@ -367,6 +368,9 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
     clan_info = f"<b>Название клана</b>: {escape(clan.name)}\n\n"
     clan_info += f"<b>Игра</b>: {escape(clan.game)}\n\n"
+    if clan.add_info:
+        add_info = await render_clan_info(clan.game, clan.add_info)
+        clan_info += f"<b>Дополнительная информация</b>:\n{add_info}\n\n"
     clan_info += f"<b>Описание</b>: {escape(clan.description)}\n\n"
     clan_info += f"<b>Требования</b>: {escape(clan.demands)}\n\n"
 

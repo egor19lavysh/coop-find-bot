@@ -7,9 +7,44 @@ from states.create_clan import *
 from utils.creation_process import CMDS, restrict_access
 from typing import Union
 from handlers.clan.create_clan import TEXT_GAME, TEXT_DESCRIPTION
+from utils.raven import *
 
 
 router = Router()
+
+@router.message(ClanForm.raven_cluster)
+@router.callback_query(ClanForm.raven_cluster)
+async def raven_cluster_chosen(
+    event: Union[CallbackQuery, Message],
+    state: FSMContext
+):
+    if isinstance(event, Message):
+        if event.text in CMDS:
+            await restrict_access(event, CLUSTER_TEXT, get_raven_clusters_kb, with_back=True)
+            return
+    else:
+        callback = event
+
+    await callback.answer()
+
+    cluster = callback.data.split("_")[-1]
+
+    if cluster == "back":
+        await callback.message.delete()
+        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
+        await state.set_state(ClanForm.game)
+        return
+    
+    await state.update_data(add_info=cluster)
+    await callback.message.edit_text(
+        text=f"Выбран кластер: {cluster}",
+        reply_markup=None
+    )
+
+    await callback.message.answer(
+        text=SERVER_TEXT,
+        reply_markup=await get_raven_servers_kb(with_back=True))
+    await state.set_state(ClanForm.raven_server)
 
 
 @router.message(ClanForm.raven_server)
@@ -26,17 +61,19 @@ async def raven_server_chosen(
         callback = event
 
     await callback.answer()
+    data = await state.get_data()
+    add_info = data.get("add_info")
 
     server = callback.data.split("_")[-1]
 
     if server == "back":
         await callback.message.delete()
-        await callback.message.answer(text=TEXT_GAME, reply_markup=await get_game_kb(with_back=True))
-        await state.set_state(ClanForm.game)
+        await callback.message.answer(text=CLUSTER_TEXT, reply_markup=await get_raven_clusters_kb(with_back=True))
+        await state.set_state(ClanForm.raven_cluster)
         return
     
-    data = await state.get_data()
-    await state.update_data(name=data["name"] + "|" +server)
+    await state.update_data(add_info=add_info + "@" + server)
     await callback.message.edit_text(text=f"Выбран сервер: {server}", reply_markup=None)
+    
     await callback.message.answer(text=TEXT_DESCRIPTION, reply_markup=ReplyKeyboardRemove())
     await state.set_state(ClanForm.description)

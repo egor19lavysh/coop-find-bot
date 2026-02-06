@@ -10,6 +10,7 @@ class Clan(Base):
     user_id = mapped_column(BigInteger)
     name: Mapped[str]
     game: Mapped[str]
+    add_info: Mapped[str] = mapped_column(nullable=True)
     description: Mapped[str]
     demands: Mapped[str]
     photo: Mapped[str] = mapped_column(nullable=True)

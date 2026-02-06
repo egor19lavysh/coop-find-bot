@@ -13,6 +13,7 @@ class ClanRepository:
                           user_id: int,
                           name: str,
                           game: str,
+                          add_info: str | None,
                           description: str,
                           demands: str,
                           photo: str = None) -> None:
@@ -20,6 +21,7 @@ class ClanRepository:
             user_id=user_id,
             name=name,
             game=game,
+            add_info=add_info,
             description=description,
             demands=demands,
             photo=photo
@@ -91,6 +93,15 @@ class ClanRepository:
                 update(Clan)
                 .where(Clan.id == clan_id)
                 .values(demands=demands)
+            )
+            await session.commit()
+
+    async def update_add_info(self, clan_id: int, add_info: str | None) -> None:
+        async with self.session_factory() as session:
+            await session.execute(
+                update(Clan)
+                .where(Clan.id == clan_id)
+                .values(add_info=add_info)
             )
             await session.commit()
 

@@ -6,6 +6,7 @@ class ClanForm(StatesGroup):
     game = State()
 
     # RAVEN
+    raven_cluster = State()
     raven_server = State()
 
     # LINEAGE
