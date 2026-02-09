@@ -89,9 +89,7 @@ TEXT_EMOJI = """
 """
 
 MESSAGE_TEXT = """
-Пользователь {nick} заинтересовался твоей анкетой по
-{game} и отправил тебе
-сообщение:
+Пользователь {nick} заинтересовался твоей анкетой по {game} и отправил тебе сообщение:
 
 {text}
 """
@@ -256,7 +254,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
             return
 
         profile = await repository.get_profile(user_id=message.from_user.id)
-        postfix = '\n\nТы можешь ответить ему в личных сообщениях, нажав кнопку “Ответить”👇' if message.from_user.username else ""
+        postfix = '\nТы можешь ответить ему в личных сообщениях, нажав кнопку “Ответить”👇' if message.from_user.username else ""
         try:
             await message.bot.send_message(
                 chat_id=user_id,
