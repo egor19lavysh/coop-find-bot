@@ -4,6 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 class SendMessageForm(StatesGroup):
     message = State()
+    message_without_game = State()
 
 class GameForm(StatesGroup):
     search_type = State()

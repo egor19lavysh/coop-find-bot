@@ -262,11 +262,11 @@ async def get_invite_profile_kb(user_id) -> InlineKeyboardMarkup:
     )
 
 
-async def get_to_dialog_with_user_kb(username: str, user_id: int) -> InlineKeyboardMarkup:
+async def get_to_dialog_with_user_kb(user_id: int) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="Ответить",
-            url=f"https://t.me/{username}"
+            callback_data=f"message_without_game_{user_id}"
         )],
         [InlineKeyboardButton(text="Посмотреть профиль", callback_data=f"read_profile_invite_{user_id}")]
     ])

@@ -225,13 +225,12 @@ async def get_back_to_menu() -> InlineKeyboardMarkup:
 async def get_back_to_main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Назад", callback_data="menu")]])
 
-async def get_back_to_main_menu_from_invite(username: str) -> InlineKeyboardMarkup:
+async def get_back_to_main_menu_from_invite(user_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
                                     [InlineKeyboardButton(
                                                     text="Ответить",
-                                                    url=f"https://t.me/{username}"
-                                                )],
-                                    [InlineKeyboardButton(text="Назад", callback_data="menu")]              
+                                                    callback_data=f"message_without_game_{user_id}"
+                                                )]          
                                                   ])
 
 async def get_goals_kb(with_back: bool = False) -> InlineKeyboardMarkup:

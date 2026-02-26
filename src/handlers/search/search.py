@@ -260,7 +260,7 @@ async def send_message_to_user(message: Message, state: FSMContext):
                 chat_id=user_id,
                 text=escape(MESSAGE_TEXT.format(nick=profile.nickname, game=game, text=message.text) + postfix),
                 reply_markup=await get_to_dialog_with_user_kb(
-                    username=message.from_user.username, user_id=message.from_user.id) if message.from_user.username else None
+                    user_id=message.from_user.id)
             )
             await message.answer(text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb())
 
@@ -283,6 +283,50 @@ async def send_message_to_user(message: Message, state: FSMContext):
     else:
         await message.answer(text=TEXT_ANSWER_TYPE_ERROR)
         await state.set_state(SendMessageForm.message)
+
+@router.callback_query(F.data.startswith("message_without_game_"))
+@require_profile
+async def message_without_game(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    user_id = int(callback.data.split("_")[-1])
+
+    await state.set_state(SendMessageForm.message_without_game)
+    await state.update_data(
+        user_id=user_id
+    )
+
+    await callback.message.answer(text=TEXT_SEND_MESSAGE)
+
+@router.message(SendMessageForm.message_without_game)
+async def controller_message_without_game(message: Message, state: FSMContext):
+    data = await state.get_data()
+    user_id = data.get("user_id", None)
+
+    if not user_id:
+        await message.answer(text="Произошла ошибка. Попробуйте заново.")
+        await state.clear()
+        return
+    
+    if message.text:
+
+        try:
+            if message.from_user.username:
+                user = "@" + message.from_user.username
+            else:
+                user = (await repository.get_profile(user_id=user_id)).nickname
+        
+            await message.bot.send_message(chat_id=user_id,
+                                           text=f"Пользователь {user} отправил тебе сообщение:\n\n{message.text}",
+                                           reply_markup=await get_to_dialog_with_user_kb(
+                                           user_id=message.from_user.id))
+            await message.answer(text=TEXT_SENT_MESSAGE)
+        except Exception as e:
+            print(e)
+            await message.answer(text=TEXT_TRIED_TO_SEND_MESSAGE)
+    
+    await state.clear()
+
+
 
 
 @router.callback_query(F.data.startswith("invite_user_"))
