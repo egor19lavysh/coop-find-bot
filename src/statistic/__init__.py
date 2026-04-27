@@ -40,3 +40,11 @@ class Statistic:
 
     async def set_go_website(self, user_id: int):
         await self._update_row(user_id, 8)
+
+    async def set_last_activity_day(self, user_id: int, day: datetime):
+        print(f"Updating last activity day for user_id={user_id} to {day}")
+        user_data = await self._user_repository.get_last_utm(user_id)
+        utm_label = user_data.get('utm_label')
+        index = self._google_sheet.get_row_index_multi({0: user_id, 2: utm_label})
+        if index:
+            self._google_sheet.update_row(index, {9: day.strftime('%d.%m.%Y %H:%M:%S')})
