@@ -10,12 +10,14 @@ from middlewares.apscheduler_middleware import SchedulerMiddleware
 from middlewares.actions_middleware import ActivityTrackingMiddleware
 from middlewares.ad_middleware import AdvertismentMiddleware
 from middlewares.album_middleware import AlbumMiddleware
+from middlewares.inactive_middleware import InactiveMiddleware
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.enums import ParseMode
 from google_sheet import GoogleSheetService
 from statistic import Statistic
 from repositories.user_repository import user_repository
+from utils.schedule_activity import deactivate_inactive_profiles, send_message_to_inactive_profiles
 from aiogram.filters.command import Command
 import asyncio
 
@@ -60,22 +62,37 @@ async def main() -> None:
     action_middleware = ActivityTrackingMiddleware()
     album_middleware = AlbumMiddleware()
     ad_middleware = AdvertismentMiddleware()
+    inactive_middleware = InactiveMiddleware()
 
     #dp.message.middleware(sub_middleware)
     #dp.callback_query.middleware(sub_middleware)
     dp.callback_query.middleware(ad_middleware)
+
     dp.message.middleware(scheduler_middleware)
     dp.callback_query.middleware(scheduler_middleware)
+    
     dp.message.middleware(album_middleware)
     dp.callback_query.middleware(album_middleware)
+    
     dp.message.middleware(action_middleware)
     dp.callback_query.middleware(action_middleware)
     
+    dp.message.middleware(inactive_middleware)
+    dp.callback_query.middleware(inactive_middleware)
 
     scheduler.start()
+    # scheduler.add_job(
+    #     deactivate_inactive_profiles, "interval", minutes=1, args=[bot]
+    # )
+    scheduler.add_job(
+       send_message_to_inactive_profiles, "interval",  minutes=1, args=[bot]
+    )
+
 
     await dp.start_polling(bot)
 
+    
+    
 
 if __name__ == "__main__":
     asyncio.run(main())

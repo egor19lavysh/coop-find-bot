@@ -20,6 +20,7 @@ class Profile(Base):
     photo: Mapped[str] = mapped_column(nullable=True)
     
     is_active: Mapped[bool] = mapped_column(default=False)
+    self_deactivated: Mapped[bool] = mapped_column(default=False, nullable=True)
     
     teammate_ids = mapped_column(ARRAY(Integer), default=[])
     polite: Mapped[float] = mapped_column(nullable=True)

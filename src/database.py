@@ -6,7 +6,7 @@ from config import settings
 engine = create_async_engine(
     url=settings.db_url,
     future=True,
-    echo=True, 
+    echo=False, 
     pool_pre_ping=True
 )
 

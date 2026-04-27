@@ -1,3 +1,5 @@
+from email.mime import message
+
 from aiogram import Router, Bot, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InputMediaPhoto
 from aiogram.filters.command import Command
@@ -171,9 +173,11 @@ async def deactivate_profile(callback: CallbackQuery):
     if await repository.get_profile(user_id=callback.from_user.id):
         if callback.data == "deactivate_profile":
             await repository.deactivate_profile(user_id=callback.from_user.id)
+            await repository.update_self_deactivated(user_id=callback.from_user.id, value=True)
             await callback.message.answer(text=TEXT_PROFILE_DEACTIVATED, reply_markup=await get_back_to_menu())
         else:
             await repository.activate_profile(user_id=callback.from_user.id)
+            await repository.update_self_deactivated(user_id=callback.from_user.id, value=None)
             await callback.message.answer(text=TEXT_PROFILE_ACTIVATED, reply_markup=await get_back_to_menu())
 
     else:
@@ -181,5 +185,25 @@ async def deactivate_profile(callback: CallbackQuery):
 
     await callback.answer()
 
+TEXT_SUCCESS_ACTIVATE = """
+Ура! Твоя анкета снова активирована. Теперь тебя снова видят и
+могут приглашать 🎉
+
+Удачи в поиске тиммейтов 😌
+"""
 
 
+@router.callback_query(F.data == "activate_inactive_profile")
+async def activate_inactive_profile(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    if await repository.get_profile(user_id=callback.from_user.id):
+        await repository.activate_profile(user_id=callback.from_user.id)
+        await repository.update_self_deactivated(user_id=callback.from_user.id, value=None)
+        await callback.message.answer(text=TEXT_SUCCESS_ACTIVATE)
+        from handlers.menu import TEXT_INTRO as menu_text, get_menu_keyboard
+        await callback.message.answer(text=menu_text, reply_markup=await get_menu_keyboard())
+
+    else:
+        await callback.message.answer(text=TEXT_NO_PROFILE, reply_markup=await get_back_to_menu())

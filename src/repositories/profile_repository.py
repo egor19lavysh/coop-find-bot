@@ -210,6 +210,16 @@ class ProfileRepository:
                     .values(is_active=True)
                 )
                 await session.commit()
+    
+    async def update_self_deactivated(self, user_id: int, value: bool = None):
+        async with self.session_factory() as session:
+            if await self.get_profile(user_id=user_id):
+                await session.execute(
+                    update(Profile)
+                    .where(Profile.user_id == user_id)
+                    .values(self_deactivated=value)
+                )
+                await session.commit()
 
     async def add_teammate_id(self, user_id: int, teammate_id: int) -> None:
         async with self.session_factory() as session:
