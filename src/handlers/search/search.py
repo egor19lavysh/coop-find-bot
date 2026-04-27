@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from utils.creation_process import render_clan_info
@@ -226,6 +226,8 @@ async def handle_profiles_pagination(callback: CallbackQuery, state: FSMContext)
 @require_profile
 async def send_message(callback: CallbackQuery, state: FSMContext, statistic: Statistic):
     asyncio.create_task(statistic.set_invite_game(callback.from_user.id))
+    await callback.answer()
+
     user_id = int(callback.data.split("_")[-1])
 
     data = await state.get_data()
@@ -236,9 +238,10 @@ async def send_message(callback: CallbackQuery, state: FSMContext, statistic: St
         user_id=user_id,
         game=game
     )
-    await callback.message.answer(text=TEXT_SEND_MESSAGE)
-    await callback.answer()
 
+    await callback.message.answer(text=TEXT_SEND_MESSAGE, reply_markup=await get_back_kb())
+
+    
 
 @router.message(SendMessageForm.message)
 @require_profile
@@ -535,6 +538,7 @@ async def close_clans_list(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "back_to_profiles")
 async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await callback.message.delete()
 
     data = await state.get_data()
@@ -560,7 +564,8 @@ async def get_back_to_profiles(callback: CallbackQuery, state: FSMContext):
                     text=TEXT_CLANS_FOUND,
                     reply_markup=keyboard
                 )
-    await callback.answer()
+    else:
+        await callback.message.answer("Я потеряд игру для поиска. Попробуй начать поиск заново.")
 
 
 @router.callback_query(F.data == "close_profiles_list")

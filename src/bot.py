@@ -81,11 +81,11 @@ async def main() -> None:
     dp.callback_query.middleware(inactive_middleware)
 
     scheduler.start()
-    # scheduler.add_job(
-    #     deactivate_inactive_profiles, "interval", minutes=1, args=[bot]
-    # )
     scheduler.add_job(
-       send_message_to_inactive_profiles, "interval",  minutes=1, args=[bot]
+        deactivate_inactive_profiles, "interval", hours=24, args=[bot]
+    )
+    scheduler.add_job(
+       send_message_to_inactive_profiles, "interval",  hours=24, args=[bot]
     )
 
 
