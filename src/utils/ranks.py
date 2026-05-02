@@ -148,6 +148,47 @@ GTA = [
     "701–1000+",
 ]
 
+STALCRAFT = [
+    "Новичок",
+    "Сталкер",
+    "Опытный",
+    "Ветеран",
+    "Мастер",
+    "Легенда"
+]
+
+DEADLOCK = [
+    "Послушник", 
+    "Искатель", 
+    "Алхимик", 
+    "Чародей", 
+    "Ритуалист", 
+    "Эмиссар", 
+    "Архонт", 
+    "Оракул", 
+    "Фантом", 
+    "Владыка"
+]
+
+TEAM_FORTRESS_2 = [
+    "Менее 50 часов", 
+    "от 50 до 100 часов", 
+    "До 300 часов", 
+    "До 500 часов", 
+    "До 1000 часов", 
+    "Больше 3000 часов"
+]
+
+APEX_LEGENDS = [
+    "Новичок", 
+    "Бронза", 
+    "Серебро", 
+    "Золото", 
+    "Платина", 
+    "Алмаз", 
+    "Мастер/Хищник" 
+]
+
 GAMES_RANKS = {
     "PUBG": PUBG,
     "Dota 2": DOTA2,
@@ -160,5 +201,9 @@ GAMES_RANKS = {
     "Fortnite": FORTNITE,
     "Minecraft": MINECRAFT,
     "Rust": RUST,
-    "GTA VI": GTA
+    "GTA VI": GTA,
+    "Stalcraft": STALCRAFT,
+    "Deadlock": DEADLOCK,
+    "Team fortress 2": TEAM_FORTRESS_2,
+    "Apex legends": APEX_LEGENDS
 }

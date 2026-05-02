@@ -37,3 +37,6 @@ class SearchForm(StatesGroup):
 
     goal = State()
     num_rank = State()
+
+class ClanForm(StatesGroup):
+    message = State()

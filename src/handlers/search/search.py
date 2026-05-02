@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Bot, Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
@@ -94,6 +94,13 @@ MESSAGE_TEXT = """
 {text}
 """
 
+TEXT_BEFORE_INVITE_CLAN = """
+Перед отправкой заявки напиши пару слов для главы клана
+✍
+  
+Расскажи о себе, опыте или почему хочешь вступить. Это увеличит 
+шанс попасть в клан
+"""
 
 @router.message(Command("search"))
 async def start_search(message: Message, state: FSMContext):
@@ -399,9 +406,13 @@ async def handle_clans_pagination(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("view_clan_"))
 async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
     #await callback.message.delete()
-
-    clan_id = int(callback.data.split("_")[-1])
     data = await state.get_data()
+
+    try:
+        clan_id = int(callback.data.split("_")[-1])
+    except:
+        clan_id = data["clan_id"]
+
     clans = data.get("clans", [])
     game = data.get("game")
 
@@ -439,74 +450,194 @@ async def view_clan_detail(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
-    await callback.message.edit_text(
+    await callback.message.answer(
         text=clan_info,
         reply_markup=await get_clan_detail_kb(clan_id, game)
     )
 
 
 @router.callback_query(F.data.startswith("join_clan_"))
-@require_profile
-async def join_clan(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete()
+async def send_msg_before_join(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
 
     clan_id = int(callback.data.split("_")[-1])
-    data = await state.get_data()
-    clans = data.get("clans", [])
+    await state.update_data(
+        clan_id=clan_id,
+        user_id=callback.from_user.id
+    )
 
-    clan = next((c for c in clans if c.id == clan_id), None)
-    if not clan:
-        await callback.answer("Клан не найден")
-        return
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Пропустить⏩", callback_data="skip_send_msg_before_join")],
+        [InlineKeyboardButton(text="Назад⬅", callback_data="back_send_msg_before_join")],
 
-    await state.update_data(game=clan.game)
+    ])
 
-    user_profile = await repository.get_profile(callback.from_user.id)
-    username = user_profile.nickname if user_profile else callback.from_user.full_name
+    await callback.message.answer(text=TEXT_BEFORE_INVITE_CLAN, reply_markup=keyboard)
+    await state.set_state(ClanForm.message)
 
-    join_message = f"🏰 Заявка на вступление в клан {escape(clan.name)}\n\n"
-    join_message += f"👤 Игрок: {escape(username)}\n"
-    join_message += f"🎮 Игра: {escape(clan.game)}\n"
+@router.callback_query(F.data.in_(["skip_send_msg_before_join", "back_send_msg_before_join"]))
+async def select_action_before_invite_clan(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
 
-    if user_profile:
-        games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
-        rank = games.get(clan.game, None)
-        game = clan.game
-        if rank:
-            if game in ("Raven 2", "Lineage 2M"):
-                rank = await get_raven2_rank_template(game, rank)
-            elif game == "Warcraft":
-                rank = await get_warcraft_rank_template(rank)
+    await state.set_state(None)
 
-        if game in ("Raven 2", "Lineage 2M"):
-            join_message += rank
-        else:
-            join_message += f"📊 Ранг: {rank or 'Не указан'}\n"
-        join_message += f"🎯 Цель: {', '.join(user_profile.goals) if user_profile.goals else 'Не указаны'}\n"
+    if callback.data == "skip_send_msg_before_join":
+        await join_clan_v2(callback.bot, state)
+    elif callback.data == "back_send_msg_before_join":
+        await view_clan_detail(callback, state)
+    
+    return
 
-    if callback.from_user.username:
-        join_message += f"📞 Телеграм: @{escape(callback.from_user.username)}"
-
-    join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
-    try:
-        keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
-        await callback.bot.send_message(
-            chat_id=clan.user_id,
-            text=join_message,
-            reply_markup=keyboard
+@router.message(ClanForm.message)
+async def handle_mesg_before_join_clan(message: Message, state: FSMContext):
+    
+    if message.text:
+        await state.update_data(
+            msg_before_join=message.text
         )
-        await callback.message.answer(TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+    
+    await join_clan_v2(message.bot, state)
 
-        new_xp = user_profile.experience + 30
-        if user_profile.experience // 100 < new_xp // 100:
-            await level_up(callback.bot, user_id=user_profile.user_id, new_level=new_xp // 100 + 1)
-        await repository.add_experience(user_id=user_profile.user_id, experience=30)
 
+async def join_clan_v2(bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    user_id = data["user_id"]
+
+    msg_before_join = data.get("msg_before_join", None)
+    
+    try:
+        clan_id = data["clan_id"]
+    
+
+        clans = data.get("clans", [])
+
+        clan = next((c for c in clans if c.id == clan_id), None)
+        if not clan:
+            await bot.send_message(chat_id=user_id, text="Клан не найден")
+            return
+
+        await state.update_data(game=clan.game)
+
+        user_profile = await repository.get_profile(user_id)
+        username = user_profile.nickname
+
+        join_message = f"🏰 Заявка на вступление в клан {escape(clan.name)}\n\n"
+        join_message += f"👤 Игрок: {escape(username)}\n"
+        join_message += f"🎮 Игра: {escape(clan.game)}\n"
+
+        if user_profile:
+            games = {game.name: game.rank for game in await repository.get_games_by_user_id(user_id)}
+            rank = games.get(clan.game, None)
+            game = clan.game
+            if rank:
+                if game in ("Raven 2", "Lineage 2M"):
+                    rank = await get_raven2_rank_template(game, rank)
+                elif game == "Warcraft":
+                    rank = await get_warcraft_rank_template(rank)
+
+            if game in ("Raven 2", "Lineage 2M"):
+                join_message += rank
+            else:
+                join_message += f"📊 Ранг: {rank or 'Не указан'}\n"
+            join_message += f"🎯 Цель: {', '.join(user_profile.goals) if user_profile.goals else 'Не указаны'}\n"
+
+        if user_profile.telegram_tag:
+            join_message += f"📞 Телеграм: @{escape(user_profile.telegram_tag)}"
+
+        if msg_before_join:
+            join_message += f"\n\n✍ Сообщение для лидера клана:\n{escape(msg_before_join)}"
+
+        join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
+        try:
+            keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
+            await bot.send_message(
+                chat_id=clan.user_id,
+                text=join_message,
+                reply_markup=keyboard
+            )
+            await bot.send_message(chat_id=user_id, text=TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+
+            new_xp = user_profile.experience + 30
+            if user_profile.experience // 100 < new_xp // 100:
+                await level_up(bot, user_id=user_profile.user_id, new_level=new_xp // 100 + 1)
+            await repository.add_experience(user_id=user_profile.user_id, experience=30)
+
+        except Exception as e:
+            await bot.send_message(chat_id=user_id, text=TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+            print(e)
     except Exception as e:
-        await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
         print(e)
 
-    await callback.answer()
+    await state.set_state(None)
+
+
+# async def join_clan(callback: CallbackQuery, state: FSMContext):
+#     # await callback.answer()
+#     # await callback.message.delete()
+
+#     data = await state.get_data()
+
+#     try:
+#         clan_id = int(callback.data.split("_")[-1])
+#     except:
+#         clan_id = data["clan_id"]
+
+#     data = await state.get_data()
+#     clans = data.get("clans", [])
+
+#     clan = next((c for c in clans if c.id == clan_id), None)
+#     if not clan:
+#         await callback.answer("Клан не найден")
+#         return
+
+#     await state.update_data(game=clan.game)
+
+#     user_profile = await repository.get_profile(callback.from_user.id)
+#     username = user_profile.nickname if user_profile else callback.from_user.full_name
+
+#     join_message = f"🏰 Заявка на вступление в клан {escape(clan.name)}\n\n"
+#     join_message += f"👤 Игрок: {escape(username)}\n"
+#     join_message += f"🎮 Игра: {escape(clan.game)}\n"
+
+#     if user_profile:
+#         games = {game.name: game.rank for game in await repository.get_games_by_user_id(callback.from_user.id)}
+#         rank = games.get(clan.game, None)
+#         game = clan.game
+#         if rank:
+#             if game in ("Raven 2", "Lineage 2M"):
+#                 rank = await get_raven2_rank_template(game, rank)
+#             elif game == "Warcraft":
+#                 rank = await get_warcraft_rank_template(rank)
+
+#         if game in ("Raven 2", "Lineage 2M"):
+#             join_message += rank
+#         else:
+#             join_message += f"📊 Ранг: {rank or 'Не указан'}\n"
+#         join_message += f"🎯 Цель: {', '.join(user_profile.goals) if user_profile.goals else 'Не указаны'}\n"
+
+#     if callback.from_user.username:
+#         join_message += f"📞 Телеграм: @{escape(callback.from_user.username)}"
+
+#     join_message += "\n\nЧтобы принять пользователя, не стесняйся, напиши ему в личные сообщения"
+#     try:
+#         keyboard = await get_invite_profile_kb(user_id=user_profile.user_id) if user_profile else None
+#         await callback.bot.send_message(
+#             chat_id=clan.user_id,
+#             text=join_message,
+#             reply_markup=keyboard
+#         )
+#         await callback.message.answer(TEXT_SENT_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+
+#         new_xp = user_profile.experience + 30
+#         if user_profile.experience // 100 < new_xp // 100:
+#             await level_up(callback.bot, user_id=user_profile.user_id, new_level=new_xp // 100 + 1)
+#         await repository.add_experience(user_id=user_profile.user_id, experience=30)
+
+#     except Exception as e:
+#         await callback.message.answer(TEXT_TRIED_TO_SEND_MESSAGE, reply_markup=await get_back_kb(search_type="clans"))
+#         print(e)
+
 
 
 @router.callback_query(F.data.startswith("back_to_clans"))
