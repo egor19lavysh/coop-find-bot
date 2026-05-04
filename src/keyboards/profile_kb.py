@@ -48,17 +48,31 @@ async def get_gender_keyboard(with_back: bool = True) -> InlineKeyboardMarkup:
     )
     return keyboard
 
-async def get_game_kb(with_back: bool = True, n: int = 2) -> InlineKeyboardMarkup:
+async def get_game_kb(with_back: bool = True, n: int = 2, page: int = 1) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
-    for game in GAME_LIST:
+    for idx, game in enumerate(GAME_LIST):
+        if idx < 18 * (page - 1) or idx >= 18 * page:
+            continue
         builder.add(
             InlineKeyboardButton(text=GAME_LIST[game],
                                  callback_data=f"save_profile_game_{game}")
         )
     
-    
+    query_next = f"game_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank"
+    query_prev = f"game_page_{page - 1}" if page > 1 else "blank"
+    if with_back:
+        query_prev += "_back"
+        query_next += "_back"
+
+        
+    btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=query_next)
+    btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=query_prev)
+
+
     builder.adjust(n)
+    builder.row(btn_prev, btn_next)    
+
     
     if with_back:
         builder.row(InlineKeyboardButton(text="Назад", callback_data="back_from_games"))
@@ -121,7 +135,7 @@ async def get_status_kb(with_back: bool = False):
     return builder.as_markup()
 
 # Остальные клавиатуры остаются без изменений
-async def get_game_inline_kb() -> InlineKeyboardMarkup:
+async def get_game_inline_kb(page: int = 1, with_back: bool = False) -> InlineKeyboardMarkup:
     """Inline клавиатура для выбора игр"""
     builder = InlineKeyboardBuilder()
     
@@ -130,8 +144,15 @@ async def get_game_inline_kb() -> InlineKeyboardMarkup:
             text=GAME_LIST[game],
             callback_data=f"get_profiles_by_{game}"
         ))
-    
+
+    # btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=f"game_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank")
+    # btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=f"game_page_{page - 1}" if page > 1 else "blank")
+    # builder.row(btn_prev, btn_next)
+
     builder.adjust(2)
+
+    if with_back:
+        builder.row(InlineKeyboardButton(text="Назад", callback_data="get_profiles_by_back"))
     return builder.as_markup()
 
 async def get_profile_kb(user_id: int) -> InlineKeyboardBuilder:
@@ -171,6 +192,20 @@ async def get_interaction_kb(user_id: int, game: str, need_filter: bool = False)
         [InlineKeyboardButton(
             text="Назад",
             callback_data="back_to_profiles" if not need_filter else "profile_by_filters"
+        )]
+    ]
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=buttons
+    )
+
+    return keyboard
+
+async def get_gallery_kb(user_id: int, game: str) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(
+            text="Назад",
+            callback_data=f"read_profile_self_{user_id}_{game}"
         )]
     ]
 

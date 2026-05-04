@@ -2,6 +2,7 @@ from aiogram import Bot, types, Dispatcher, F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters.command import Command, CommandObject
 from keyboards.start_kb import get_start_keyboard
+from keyboards.profile_kb import get_game_kb
 from utils.check_subscription import check_subscription
 from handlers.profile.create_profile import start_profile
 from aiogram.fsm.context import FSMContext
@@ -22,9 +23,20 @@ TEXT_START = """
 Напиши свой никнейм 👇
 """
 
-@router.callback_query(F.data == "blank")
+@router.callback_query(F.data.startswith("blank"))
 async def blank(callback: CallbackQuery):
     await callback.answer()
+
+@router.callback_query(F.data.startswith("game_page_"))
+async def paginate_games(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    if callback.data.endswith("back"):
+        page = int(callback.data.split("_")[-2])
+        await callback.message.edit_reply_markup(reply_markup=await get_game_kb(with_back=True, page=page))
+    else:
+        page = int(callback.data.split("_")[-1])
+        await callback.message.edit_reply_markup(reply_markup=await get_game_kb(with_back=False, page=page))
 
 
 @router.message(Command("start"))

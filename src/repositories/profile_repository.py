@@ -82,7 +82,6 @@ class ProfileRepository:
                                       game: str,
                                       rank: str = None,
                                       goal: str = None) -> list[Profile]:
-        print(user_id, game, rank, goal)
         stmt = select(Profile).join(Profile.games).where(Profile.is_active, 
                                                          Game.name == game, 
                                                          Profile.user_id != user_id)

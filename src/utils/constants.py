@@ -24,9 +24,9 @@ GAME_LIST = {
     "Standoff 2": "⚡Standoff 2⚡",
     "GTA VI": "💵GTA VI💵",
     "Stalcraft": "☢Stalcraft☢",
-    "Deadlock": "�Deadlock�",
-    "Team fortress 2": "�Team Fortress 2",
-    "Apex legends": "�Apex Legends�"
+    "Deadlock": "💀Deadlock💀",
+    "Team fortress 2": "🎩Team Fortress 2🎩",
+    "Apex legends": "🔺Apex Legends🔺"
 }
 
 PROFILE_SAMPLE = """

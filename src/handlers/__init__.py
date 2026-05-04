@@ -19,10 +19,11 @@ from handlers.search.search_raven import router as search_raven_router
 from handlers.search.search_lineage import router as search_lineage_router
 from handlers.clan.games.raven import router as raven_clan_router
 from handlers.clan.games.lineage import router as lineage_clan_router
+from handlers.autofit import router as autofit_router
 
 
-
-routers = [start_router, create_clan_router, raven_clan_router,
+routers = [
+            start_router, create_clan_router, raven_clan_router,
             create_profile_router, raven_router,
             lineage_router,
             lineage_clan_router,
@@ -31,9 +32,11 @@ routers = [start_router, create_clan_router, raven_clan_router,
             edit_donate_router,
             donate_router, menu_router,
             profile_router,
+            autofit_router,
             search_donate_router, 
             search_raven_router, 
             search_lineage_router,
             search_profile, estimate_router,
             clan_router, edit_profile_router,
-            edit_clan_router]
+            edit_clan_router,
+            ]
