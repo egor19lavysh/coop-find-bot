@@ -2,7 +2,8 @@ from aiogram import Bot, types, Dispatcher, F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters.command import Command, CommandObject
 from keyboards.start_kb import get_start_keyboard
-from keyboards.profile_kb import get_game_kb
+from keyboards.profile_kb import get_game_inline_kb, get_game_kb
+from keyboards.search_kb import get_game_inline_kb as get_game_inline_kb_search, get_games_filter_search_kb
 from utils.check_subscription import check_subscription
 from handlers.profile.create_profile import start_profile
 from aiogram.fsm.context import FSMContext
@@ -19,8 +20,7 @@ router = Router()
 TEXT_START = """
 👋 Салют! Я помогу тебе найти тиммейта для совместной игры!
 
-Сначала ответь на пару вопросов чтобы я смог создать твою анкету. 
-Напиши свой никнейм 👇
+Сначала ответь на пару вопросов чтобы я смог создать твою анкету. Напиши свой никнейм 👇
 """
 
 @router.callback_query(F.data.startswith("blank"))
@@ -38,6 +38,34 @@ async def paginate_games(callback: CallbackQuery, state: FSMContext):
         page = int(callback.data.split("_")[-1])
         await callback.message.edit_reply_markup(reply_markup=await get_game_kb(with_back=False, page=page))
 
+# Я идиот и написал 3 функции пагинации для 3 разных клавиатур, вместо того, чтобы сделать одну универсальную. 
+# Из-за сроков пришлось говнокодить
+# Надо сделать рефакторинг и объединить эти функции в одну, которая будет принимать аргументом тип клавиатуры, которую нужно отрендерить.
+
+@router.callback_query(F.data.startswith("game_inline_page_"))
+async def paginate_games(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    if callback.data.endswith("back"):
+        page = int(callback.data.split("_")[-2])
+        await callback.message.edit_reply_markup(reply_markup=await get_game_inline_kb(with_back=True, page=page))
+    else:
+        page = int(callback.data.split("_")[-1])
+        await callback.message.edit_reply_markup(reply_markup=await get_game_inline_kb(with_back=False, page=page))
+
+@router.callback_query(F.data.startswith("search_game_inline_page_"))
+async def paginate_games(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    page = int(callback.data.split("_")[-1])
+    await callback.message.edit_reply_markup(reply_markup=await get_game_inline_kb_search(page=page))
+
+@router.callback_query(F.data.startswith("filter_game_inline_page_"))
+async def paginate_games(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+    page = int(callback.data.split("_")[-1])
+    await callback.message.edit_reply_markup(reply_markup=await get_games_filter_search_kb(page=page))
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, command: CommandObject, state: FSMContext, statistic: Statistic):

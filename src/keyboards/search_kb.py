@@ -236,17 +236,29 @@ async def get_profile_action_kb(user_id: int, game: str) -> InlineKeyboardMarkup
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-async def get_game_inline_kb() -> InlineKeyboardMarkup:
+async def get_game_inline_kb(page: int = 1) -> InlineKeyboardMarkup:
     """Inline клавиатура для выбора игр"""
     builder = InlineKeyboardBuilder()
     
-    for game in GAME_LIST:
+    for idx, game in enumerate(GAME_LIST):
+        if idx < 18 * (page - 1) or idx >= 18 * page:
+            continue
         builder.add(InlineKeyboardButton(
             text=GAME_LIST[game],
             callback_data=f"get_profiles_by_{game}"
         ))
     
     builder.adjust(2)
+
+    query_next = f"search_game_inline_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank"
+    query_prev = f"search_game_inline_page_{page - 1}" if page > 1 else "blank"
+    
+
+    btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=query_next)
+    btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=query_prev)
+    builder.row(btn_prev, btn_next)
+    builder.row(InlineKeyboardButton(text=f"{page}/{len(GAME_LIST) // 18 + 1}", callback_data="blank"))    
+
 
     builder.row(InlineKeyboardButton(text="Назад", callback_data="start_search"))
     return builder.as_markup()
@@ -280,17 +292,29 @@ async def get_search_profiles_types():
         [InlineKeyboardButton(text="Назад", callback_data="start_search")]
     ])
 
-async def get_games_filter_search_kb() -> InlineKeyboardMarkup:
+async def get_games_filter_search_kb(page: int = 1) -> InlineKeyboardMarkup:
     """Inline клавиатура для выбора игр"""
     builder = InlineKeyboardBuilder()
     
-    for game in GAME_LIST:
+    for idx, game in enumerate(GAME_LIST):
+        if idx < 18 * (page - 1) or idx >= 18 * page:
+            continue
         builder.add(InlineKeyboardButton(
             text=GAME_LIST[game],
             callback_data=f"filter_game_{game}"
         ))
     
     builder.adjust(2)
+
+    query_next = f"filter_game_inline_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank"
+    query_prev = f"filter_game_inline_page_{page - 1}" if page > 1 else "blank"
+    
+
+    btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=query_next)
+    btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=query_prev)
+    builder.row(btn_prev, btn_next)
+    builder.row(InlineKeyboardButton(text=f"{page}/{len(GAME_LIST) // 18 + 1}", callback_data="blank"))    
+
 
     builder.row(InlineKeyboardButton(text="Назад", callback_data="start_search"))
     return builder.as_markup()

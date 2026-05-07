@@ -71,7 +71,8 @@ async def get_game_kb(with_back: bool = True, n: int = 2, page: int = 1) -> Inli
 
 
     builder.adjust(n)
-    builder.row(btn_prev, btn_next)    
+    builder.row(btn_prev, btn_next)
+    builder.row(InlineKeyboardButton(text=f"{page}/{len(GAME_LIST) // 18 + 1}", callback_data="blank"))    
 
     
     if with_back:
@@ -139,17 +140,30 @@ async def get_game_inline_kb(page: int = 1, with_back: bool = False) -> InlineKe
     """Inline клавиатура для выбора игр"""
     builder = InlineKeyboardBuilder()
     
-    for game in GAME_LIST:
+    for idx, game in enumerate(GAME_LIST):
+        if idx < 18 * (page - 1) or idx >= 18 * page:
+            continue
         builder.add(InlineKeyboardButton(
             text=GAME_LIST[game],
             callback_data=f"get_profiles_by_{game}"
         ))
 
-    # btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=f"game_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank")
-    # btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=f"game_page_{page - 1}" if page > 1 else "blank")
-    # builder.row(btn_prev, btn_next)
-
     builder.adjust(2)
+    
+    
+    query_next = f"game_inline_page_{page + 1}" if 18*page < len(GAME_LIST) else "blank"
+    query_prev = f"game_inline_page_{page - 1}" if page > 1 else "blank"
+    
+    if with_back:
+        query_prev += "_back"
+        query_next += "_back"
+
+    btn_next = InlineKeyboardButton(text="Вперед ▶️", callback_data=query_next)
+    btn_prev = InlineKeyboardButton(text="◀️ Назад", callback_data=query_prev)
+    builder.row(btn_prev, btn_next)
+    builder.row(InlineKeyboardButton(text=f"{page}/{len(GAME_LIST) // 18 + 1}", callback_data="blank"))    
+
+
 
     if with_back:
         builder.row(InlineKeyboardButton(text="Назад", callback_data="get_profiles_by_back"))

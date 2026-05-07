@@ -23,7 +23,8 @@ from handlers.autofit import router as autofit_router
 
 
 routers = [
-            start_router, create_clan_router, raven_clan_router,
+            start_router,
+            create_clan_router, raven_clan_router,
             create_profile_router, raven_router,
             lineage_router,
             lineage_clan_router,

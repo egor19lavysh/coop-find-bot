@@ -1,4 +1,6 @@
 from html import escape
+from handlers.menu import TEXT_INTRO
+from keyboards.menu_kb import get_menu_keyboard
 from utils.level_up import level_up
 from statistic import Statistic
 import asyncio
@@ -37,10 +39,9 @@ class AutofitProfiles(StatesGroup):
 
 def autofit_kb():
     kb = [
-        [KeyboardButton(text="Написать💭"),
-         KeyboardButton(text="Следующий➡"),
-         KeyboardButton(text="Пригласить📍")],
-        [KeyboardButton(text="Закончить❌")]
+        [KeyboardButton(text="✅Да"),
+         KeyboardButton(text="❌Нет"),],
+        [KeyboardButton(text="Завершить")]
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
@@ -141,14 +142,17 @@ async def autofit_game_handler(callback: CallbackQuery, state: FSMContext):
     game = callback.data.split("_")[-1]
 
     if game == "back":
-        await callback.message.answer(text="Автоподбор отменен")
+        await callback.message.answer(text="Автоподбор отменен", reply_markup=ReplyKeyboardRemove())
+        await callback.message.answer(text=TEXT_INTRO, reply_markup=await get_menu_keyboard())
         await state.set_state(None)
         return
 
     try:
         profiles = await pr.get_profiles_by_game(game=game, user_id=callback.from_user.id)
         if not profiles:
-            await callback.message.answer("Выбери игру из списка", reply_markup=await get_game_inline_kb())
+            await state.set_state(None)
+            await callback.message.answer("По этой игре нет доступных профилей...", reply_markup=ReplyKeyboardRemove())
+            await callback.message.answer(text=TEXT_INTRO, reply_markup=await get_menu_keyboard())
             return
 
         profiles = random.sample(profiles, 10 if len(profiles) > 10 else len(profiles))
@@ -213,14 +217,10 @@ async def send_profile(message: Message, state: FSMContext):
 
 @router.message(AutofitProfiles.waiting_for_answer)
 async def answer_handler(message: Message, state: FSMContext, apscheduler: AsyncIOScheduler, statistic: Statistic):
-    try:
-        data = await state.get_data()
+    data = await state.get_data()
 
-        if message.text == "Написать💭":
-            await state.update_data(user_id=data.get("profiles")[data.get("index")].user_id)
-            await message.answer(TEXT_SEND_MESSAGE)
-            await state.set_state(AutofitProfiles.waiting_for_message)
-        elif message.text == "Пригласить📍":
+    try:
+        if message.text == "✅Да":
             try:
                 index = data.get("index")
                 profiles = data.get("profiles")
@@ -234,14 +234,20 @@ async def answer_handler(message: Message, state: FSMContext, apscheduler: Async
             except Exception as e:
                 print(e)
                 await message.answer("Произошла ошибка при приглашении пользователя, попробуй снова")
-        elif message.text == "Следующий➡":
-            data = await state.get_data()
+            
             index = data.get("index", 0) + 1
             await state.update_data(index=index)
             await send_profile(message, state)
-        elif message.text == "Закончить❌":
+        elif message.text == "❌Нет":
+            index = data.get("index", 0) + 1
+            await state.update_data(index=index)
+            await send_profile(message, state)
+        elif message.text == "Завершить":
             await state.clear()
-            await message.answer("Автоподбор завершен", reply_markup=ReplyKeyboardRemove())
+            msg = await message.answer("Автоподбор завершен", reply_markup=ReplyKeyboardRemove())
+            await msg.delete()
+            await message.answer(text=TEXT_INTRO, reply_markup=await get_menu_keyboard())
+
         else:
             await message.answer("Пожалуйста, выбери действие с помощью кнопок ниже", reply_markup=autofit_kb())
     except Exception as e:
