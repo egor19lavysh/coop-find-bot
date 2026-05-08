@@ -25,14 +25,11 @@ class UtmTrackingMiddleware(BaseMiddleware):
         
         if last_activity_day := await statistic.get_last_activity_day(user.id):
             today = date.today()
-            diff = (today - last_activity_day).days
+            diff = (today - last_activity_day.date()).days
 
             if diff >= 1:
                 asyncio.create_task(statistic.set_last_activity_day(event.from_user.id, datetime.now()))
         else:
             asyncio.create_task(statistic.set_last_activity_day(event.from_user.id, datetime.now()))
 
-
-               
-
-            
+        return await handler(event, data)
