@@ -48,3 +48,17 @@ class Statistic:
         index = self._google_sheet.get_row_index_multi({0: user_id, 2: utm_label})
         if index:
             self._google_sheet.update_row(index, {9: day.strftime('%d.%m.%Y %H:%M:%S')})
+
+    async def get_last_activity_day(self, user_id: int) -> datetime | None:
+        user_data = await self._user_repository.get_last_utm(user_id)
+        utm_label = user_data.get('utm_label')
+        index = self._google_sheet.get_row_index_multi({0: user_id, 2: utm_label})
+        if not index:
+            return None
+        value = self._google_sheet.get_cell_value(index, 9)
+        if not value or value == '-':
+            return None
+        try:
+            return datetime.strptime(value, '%d.%m.%Y %H:%M:%S')
+        except ValueError:
+            return None

@@ -45,3 +45,11 @@ class GoogleSheetService:
         logger.debug("index = %d, data = %s", index, data)
         for col_index, value in data.items():
             self.worksheet.update_cell(index, col_index + 1, value)
+
+    def get_cell_value(self, row: int, col: int) -> str | None:
+        """Получить значение ячейки по индексу строки и колонки (1-based)"""
+        try:
+            return self.worksheet.cell(row, col).value
+        except Exception as e:
+            logger.error("Error getting cell value: %s", e)
+            return None

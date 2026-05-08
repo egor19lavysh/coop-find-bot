@@ -11,6 +11,7 @@ from middlewares.actions_middleware import ActivityTrackingMiddleware
 from middlewares.ad_middleware import AdvertismentMiddleware
 from middlewares.album_middleware import AlbumMiddleware
 from middlewares.inactive_middleware import InactiveMiddleware
+from middlewares.utm_middleware import UtmTrackingMiddleware
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.enums import ParseMode
@@ -63,6 +64,7 @@ async def main() -> None:
     album_middleware = AlbumMiddleware()
     ad_middleware = AdvertismentMiddleware()
     inactive_middleware = InactiveMiddleware()
+    utm_middleware = UtmTrackingMiddleware()
 
     #dp.message.middleware(sub_middleware)
     #dp.callback_query.middleware(sub_middleware)
@@ -79,6 +81,9 @@ async def main() -> None:
     
     dp.message.middleware(inactive_middleware)
     dp.callback_query.middleware(inactive_middleware)
+
+    dp.message.middleware(utm_middleware)
+    dp.callback_query.middleware(utm_middleware)
 
     scheduler.start()
     
